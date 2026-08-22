@@ -1,0 +1,123 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = "file:./dev.db"
+}
+
+model AdminSettings {
+  id    Int    @id @default(1)
+  email String @default("admin@mightymemories.com")
+  
+  // Pricing configuration
+  pricePerSticker Float  @default(3.25)
+  shippingRate    Float  @default(8.95)
+  
+  // Payment configuration (mock/stripe)
+  stripePublicKey String?
+  stripeSecretKey String?
+
+  // Email Templates
+  receiptEmailSubject  String @default("Order Confirmation - m2 Mighty Memories")
+  receiptEmailBody     String @default("Thank you for your order! We are preparing your custom stickers.")
+  shippingEmailSubject String @default("Your Order has Shipped! - m2 Mighty Memories")
+  shippingEmailBody    String @default("Great news! Your custom stickers have been shipped.")
+}
+
+model AboutContent {
+  id      Int    @id @default(1)
+  content String @default("Welcome to m2 mighty memories! We make custom magnet stickers for your beautiful memories.")
+}
+
+model PortfolioImage {
+  id        Int      @id @default(autoincrement())
+  url       String
+  createdAt DateTime @default(now())
+}
+
+model Order {
+  id            Int           @id @default(autoincrement())
+  name          String
+  email         String
+  phone         String
+  address       String?
+  quantity      Int
+  totalAmount   Float         @default(0.0)
+  productType   String?
+  packageDetails String?
+  comments      String?
+  status        String        @default("New")
+  trackingNumber String?
+  customerImage String?
+  photos        OrderPhoto[]
+  review        Review?
+  createdAt     DateTime      @default(now())
+}
+
+model OrderPhoto {
+  id      Int    @id @default(autoincrement())
+  url     String
+  orderId Int
+  order   Order  @relation(fields: [orderId], references: [id])
+}
+
+// NextAuth required tables
+model Account {
+  id                String  @id @default(cuid())
+  userId            String
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String?
+  access_token      String?
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String?
+  session_state     String?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+}
+
+model Session {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model User {
+  id            String    @id @default(cuid())
+  name          String?
+  email         String?   @unique
+  emailVerified DateTime?
+  image         String?
+  accounts      Account[]
+  sessions      Session[]
+}
+
+model VerificationToken {
+  identifier String
+  token      String   @unique
+  expires    DateTime
+
+  @@unique([identifier, token])
+}
+
+
+model Review {
+  id        Int      @id @default(autoincrement())
+  rating    Int
+  text      String
+  userName  String
+  userImage String?
+  photoUrl  String?
+  orderId   Int?     @unique
+  order     Order?   @relation(fields: [orderId], references: [id], onDelete: SetNull)
+  createdAt DateTime @default(now())
+}

@@ -1,0 +1,125 @@
+import { getDb } from "@/lib/firebase";
+import { Mail, ShieldAlert, CheckCircle, Package, Truck, CheckCheck, XCircle } from "lucide-react";
+import { updateEmailTemplate } from "../actions";
+
+export const dynamic = "force-dynamic";
+
+export default async function EmailsPage() {
+  const db = getDb();
+  const settingsSnap = await db.ref("settings/config").get();
+  const settings = settingsSnap.val() || {};
+
+  const templates = [
+    {
+      id: "adminNewOrder",
+      title: "Admin Alert: New Order Received",
+      desc: "Sent to YOU when a customer places a new order.",
+      icon: <ShieldAlert className="w-5 h-5 text-red-500" />,
+      bg: "bg-red-50",
+      defaultSub: "New Order Received! - m2 Mighty Memories",
+      defaultBody: "You have received a new order. Please check the admin dashboard for details."
+    },
+    {
+      id: "receiptEmail",
+      title: "Customer: Order Confirmation (Receipt)",
+      desc: "Sent to the CUSTOMER immediately after checkout.",
+      icon: <CheckCircle className="w-5 h-5 text-green-500" />,
+      bg: "bg-green-50",
+      defaultSub: "Order Confirmation - m2 Mighty Memories",
+      defaultBody: "Thank you for your order! We are preparing your custom stickers."
+    },
+    {
+      id: "processingEmail",
+      title: "Customer: Order Processing",
+      desc: "Sent to the CUSTOMER when you change status to 'Processing'.",
+      icon: <Package className="w-5 h-5 text-blue-500" />,
+      bg: "bg-blue-50",
+      defaultSub: "We're working on your order! - m2 Mighty Memories",
+      defaultBody: "We have started processing your custom magnets! We will let you know when they ship."
+    },
+    {
+      id: "shippingEmail",
+      title: "Customer: Order Shipped",
+      desc: "Sent to the CUSTOMER when you change status to 'Shipped'.",
+      icon: <Truck className="w-5 h-5 text-purple-500" />,
+      bg: "bg-purple-50",
+      defaultSub: "Your Order has Shipped! - m2 Mighty Memories",
+      defaultBody: "Great news! Your custom stickers have been shipped."
+    },
+    {
+      id: "completedEmail",
+      title: "Customer: Order Completed",
+      desc: "Sent to the CUSTOMER when you change status to 'Completed'.",
+      icon: <CheckCheck className="w-5 h-5 text-teal-500" />,
+      bg: "bg-teal-50",
+      defaultSub: "Your order is complete! - m2 Mighty Memories",
+      defaultBody: "Your order is now marked as completed. We hope you love your magnets!"
+    },
+    {
+      id: "cancelledEmail",
+      title: "Customer: Order Cancelled",
+      desc: "Sent to the CUSTOMER when you change status to 'Cancelled'.",
+      icon: <XCircle className="w-5 h-5 text-gray-500" />,
+      bg: "bg-gray-100",
+      defaultSub: "Order Cancelled - m2 Mighty Memories",
+      defaultBody: "Your order has been cancelled. If you have any questions, please contact us."
+    }
+  ];
+
+  return (
+    <div className="max-w-4xl mx-auto pb-12">
+      <div className="flex items-center gap-3 mb-8">
+        <div className="w-12 h-12 bg-indigo-50 rounded-2xl flex items-center justify-center">
+          <Mail className="w-6 h-6 text-indigo-600" />
+        </div>
+        <div>
+          <h1 className="text-3xl font-extrabold text-gray-900">Email Templates</h1>
+          <p className="text-gray-500 mt-1">Customize the automated emails sent to you and your customers.</p>
+        </div>
+      </div>
+
+      <div className="space-y-6">
+        {templates.map((tpl) => (
+          <form action={updateEmailTemplate} key={tpl.id} className="bg-white p-6 rounded-3xl border border-gray-100 shadow-sm">
+            <input type="hidden" name="templateId" value={tpl.id} />
+            <div className="flex items-center gap-3 mb-4">
+              <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${tpl.bg}`}>
+                {tpl.icon}
+              </div>
+              <div className="flex-1">
+                <h3 className="font-bold text-gray-900">{tpl.title}</h3>
+                <p className="text-xs text-gray-500">{tpl.desc}</p>
+              </div>
+              <button type="submit" className="bg-gray-100 text-gray-700 px-4 py-2 rounded-lg text-sm font-bold hover:bg-indigo-600 hover:text-white transition shadow-sm">
+                Save
+              </button>
+            </div>
+            
+            <div className="space-y-4 pl-14">
+              <div>
+                <label className="block text-xs font-semibold text-gray-700 mb-1.5 uppercase tracking-wider">Subject Line</label>
+                <input
+                  type="text"
+                  name={`${tpl.id}Subject`}
+                  defaultValue={settings[`${tpl.id}Subject`] || tpl.defaultSub}
+                  required
+                  className="w-full px-4 py-2 border border-gray-200 rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none bg-gray-50 focus:bg-white transition text-sm"
+                />
+              </div>
+              <div>
+                <label className="block text-xs font-semibold text-gray-700 mb-1.5 uppercase tracking-wider">Email Body</label>
+                <textarea
+                  name={`${tpl.id}Body`}
+                  rows={3}
+                  defaultValue={settings[`${tpl.id}Body`] || tpl.defaultBody}
+                  required
+                  className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none bg-gray-50 focus:bg-white transition resize-y text-sm leading-relaxed"
+                />
+              </div>
+            </div>
+          </form>
+        ))}
+      </div>
+    </div>
+  );
+}
