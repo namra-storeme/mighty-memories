@@ -1,10 +1,6 @@
-import { PrismaClient } from "@prisma/client";
 import { Info, Heart, Camera, Star } from "lucide-react";
 
-const prisma = new PrismaClient();
-
 export default async function About() {
-  const about = await prisma.aboutContent.findUnique({ where: { id: 1 } });
 
   const highlights = [
     { icon: <Heart className="w-5 h-5" />, label: "Made with Love", color: "from-pink-500 to-rose-500" },
@@ -44,19 +40,9 @@ export default async function About() {
       <section className="py-16 px-4 bg-gray-50">
         <div className="max-w-3xl mx-auto bg-white rounded-2xl shadow-sm border border-gray-100 p-8 sm:p-12">
           <div className="prose prose-lg text-gray-600 max-w-none">
-            {about?.content ? (
-              about.content.split("\n").map((paragraph, i) =>
-                paragraph.trim() ? (
-                  <p key={i} className="mb-5 leading-relaxed">
-                    {paragraph}
-                  </p>
-                ) : null
-              )
-            ) : (
               <p className="leading-relaxed">
                 Welcome to <strong>m2 mighty memories</strong>! We specialize in turning your beautiful memories into custom magnet stickers. Each piece is crafted with care and attention to detail, so you can cherish your favourite moments every day.
               </p>
-            )}
           </div>
         </div>
       </section>
