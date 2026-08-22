@@ -2,7 +2,7 @@ import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { ShoppingBag, Phone, Mail, MessageSquare, Calendar, Image as ImageIcon, User, Trash2 } from "lucide-react";
 import Link from "next/link";
-import { updateOrderStatus, deleteOrder } from "../actions";
+import { updateOrderStatus } from "../actions";
 import { getDb } from "@/lib/firebase";
 import OrderSearch from "@/components/OrderSearch";
 

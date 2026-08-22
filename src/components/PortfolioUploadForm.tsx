@@ -5,7 +5,7 @@ import { uploadPortfolioPhoto } from "@/app/mightymemoriesadmin/actions";
 export default function PortfolioUploadForm() {
   return (
     <form
-      action={uploadPortfolioPhoto}
+      action={async (formData) => { await uploadPortfolioPhoto(formData); }}
       onSubmit={(e) => {
         const input = (e.currentTarget as HTMLFormElement).querySelector(
           'input[type="file"]'
