@@ -41,16 +41,16 @@ export default async function Home() {
             className="w-full h-full object-cover"
           />
         </div>
-        <div className="relative z-10 h-full flex flex-col items-center justify-center px-4 text-center">
-          <p className="text-white/80 text-sm md:text-base font-semibold tracking-wider mb-4">
+        <div className="relative z-10 h-full flex flex-col items-center justify-center px-6 text-center">
+          <p className="text-white/80 text-xs md:text-base font-semibold tracking-wider mb-3 md:mb-4">
             m2 mighty memories - Turning your favourite memories into beautiful custom magnets.
           </p>
-          <h1 className="text-4xl md:text-6xl font-bold text-white max-w-3xl leading-tight mb-8">
+          <h1 className="text-3xl sm:text-4xl md:text-6xl font-bold text-white max-w-3xl leading-tight mb-6 md:mb-8">
               Save Your Memories Forever With Custom Magnets
           </h1>
           <Link
             href="/shop"
-            className="inline-block border-2 border-white text-white px-8 py-3 text-sm font-semibold hover:bg-white hover:text-black transition uppercase tracking-wider"
+            className="inline-block border-2 border-white text-white px-6 md:px-8 py-3 text-sm font-semibold hover:bg-white hover:text-black transition uppercase tracking-wider"
           >
             Shop all
           </Link>

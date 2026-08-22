@@ -121,7 +121,7 @@ export default function ShopPage() {
             {/* Product Selection */}
             <div className="bg-white p-6 md:p-8 border border-gray-100 shadow-sm rounded-xl mb-6">
               <h3 className="text-lg font-bold text-gray-900 mb-4 border-b border-gray-100 pb-2">1. Select Product</h3>
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div className="grid grid-cols-2 md:grid-cols-3 gap-3 md:gap-4">
                 {Object.keys(PRODUCTS).map((type) => (
                   <button
                     key={type}
@@ -227,7 +227,7 @@ export default function ShopPage() {
                 type="button"
                 onClick={handleProceedToDetails}
                 disabled={!selectedPkg || photos.length === 0}
-                className="bg-black text-white px-8 py-4 rounded-xl font-bold uppercase tracking-wide hover:bg-gray-800 transition disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+                className="w-full sm:w-auto bg-black text-white px-8 py-4 rounded-xl font-bold uppercase tracking-wide hover:bg-gray-800 transition disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
               >
                 Proceed to Details
                 <ChevronRight className="w-5 h-5" />
