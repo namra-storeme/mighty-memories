@@ -4,6 +4,8 @@ import { ArrowRight, Image as ImageIcon, Star, Zap, Heart } from "lucide-react";
 import ReviewButton from "@/components/ReviewButton";
 import { getDb } from "@/lib/firebase";
 
+export const dynamic = "force-dynamic";
+
 export default async function Home() {
   const db = getDb();
   const [portfolioSnap, reviewsSnap] = await Promise.all([
@@ -15,6 +17,7 @@ export default async function Home() {
   if (portfolioSnap.exists()) {
     portfolioSnap.forEach((child) => {
       photos.unshift({ id: child.key, ...child.val() });
+      return undefined;
     });
   }
 
@@ -22,6 +25,7 @@ export default async function Home() {
   if (reviewsSnap.exists()) {
     reviewsSnap.forEach((child) => {
       reviews.unshift({ id: child.key, ...child.val() });
+      return undefined;
     });
   }
 
