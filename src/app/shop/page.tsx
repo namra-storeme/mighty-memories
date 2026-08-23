@@ -200,12 +200,6 @@ export default function ShopPage() {
                         <div className="text-[#C49B76] font-bold">Save $6</div>
                       </div>
                       <div className="grid grid-cols-4">
-                        <div>Best Value</div>
-                        <div>10 for $40</div>
-                        <div>$4.00</div>
-                        <div className="text-[#C49B76] font-bold">Save $10</div>
-                      </div>
-                      <div className="grid grid-cols-4">
                         <div>Bulk Orders</div>
                         <div>40+ magnets</div>
                         <div>$4.00</div>
@@ -238,73 +232,10 @@ export default function ShopPage() {
               </div>
             </div>
 
-            {/* UPLOAD SECTION */}
-            <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
-              <h2 className="text-[13px] font-bold text-[#111827] mb-1 uppercase tracking-wider">
-                1. Upload Images {isSingle ? "" : `(${photos.length}/${quantity})`} *
-              </h2>
-              <p className="text-[13px] text-gray-400 mb-4">
-                {isSingle ? "Upload exactly 1 photo." : `Upload exactly ${quantity} photos — one per magnet.`}
-              </p>
-
-              {photos.length > 0 && (
-                <div className="flex flex-wrap gap-3 mb-4">
-                  {photos.map((file, i) => (
-                    <div key={i} className="relative w-20 h-20 rounded-lg overflow-hidden border border-gray-200 group">
-                      {/* eslint-disable-next-line @next/next/no-img-element */}
-                      <img src={URL.createObjectURL(file)} alt={`Photo ${i + 1}`} className="w-full h-full object-cover" />
-                      <button
-                        type="button"
-                        onClick={() => removePhoto(i)}
-                        className="absolute top-1 right-1 bg-white/90 text-red-500 rounded-full p-1 opacity-0 group-hover:opacity-100 transition shadow"
-                      >
-                        <X className="w-3 h-3" />
-                      </button>
-                    </div>
-                  ))}
-                  {!isSingle && photos.length < quantity && (
-                    <label className="w-20 h-20 rounded-lg border-2 border-dashed border-gray-300 flex flex-col items-center justify-center text-gray-400 hover:border-gray-400 cursor-pointer transition">
-                      <Plus className="w-5 h-5" />
-                      <input type="file" multiple accept="image/*" className="hidden" onChange={(e) => handleFiles(e.target.files)} />
-                    </label>
-                  )}
-                </div>
-              )}
-
-              {(photos.length === 0 || (isSingle && photos.length === 0)) && (
-                <label className="block border-2 border-dashed border-gray-200 rounded-xl py-8 px-4 text-center text-gray-400 hover:border-gray-400 cursor-pointer">
-                  <UploadCloud className="w-8 h-8 mx-auto mb-2 text-gray-400" />
-                  <span className="text-[14px] font-semibold block text-gray-500">Click to browse or drag & drop</span>
-                  <span className="text-[12px] mt-1 block">PNG, JPG, HEIC accepted</span>
-                  <input
-                    ref={fileInputRef}
-                    type="file"
-                    multiple={!isSingle}
-                    accept="image/*"
-                    className="hidden"
-                    onChange={(e) => handleFiles(e.target.files)}
-                  />
-                </label>
-              )}
-            </div>
-
-            {/* SPECIAL INSTRUCTIONS */}
-            <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
-              <h2 className="text-[13px] font-bold text-[#111827] mb-1 uppercase tracking-wider">2. Special Instructions</h2>
-              <p className="text-[13px] text-gray-400 mb-4">Any notes about layout, sizing, or your order? Let us know here.</p>
-              <textarea
-                value={comments}
-                onChange={(e) => setComments(e.target.value)}
-                rows={3}
-                placeholder="e.g. Please keep the photos in the order I uploaded them..."
-                className="w-full border border-gray-200 rounded-xl px-4 py-3 text-[14px] focus:outline-none focus:border-black transition resize-none placeholder-gray-300"
-              />
-            </div>
-
             {/* QUANTITY */}
             <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
               <div className="flex items-center gap-3 mb-5">
-                <h2 className="text-[13px] font-bold text-[#111827] uppercase tracking-wider">3. Quantity</h2>
+                <h2 className="text-[13px] font-bold text-[#111827] uppercase tracking-wider">1. Quantity</h2>
                 {freeShipping && (
                   <span className="text-[11px] font-bold text-blue-600 bg-blue-50 px-2 py-1 rounded-full flex items-center gap-1">
                     <Truck className="w-3 h-3" /> Free shipping on 40+ pieces!
@@ -354,6 +285,69 @@ export default function ShopPage() {
                   <span>${total.toFixed(2)} AUD</span>
                 </div>
               </div>
+            </div>
+
+            {/* UPLOAD SECTION */}
+            <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
+              <h2 className="text-[13px] font-bold text-[#111827] mb-1 uppercase tracking-wider">
+                2. Upload Images {isSingle ? "" : `(${photos.length}/${quantity})`} *
+              </h2>
+              <p className="text-[13px] text-gray-400 mb-4">
+                {isSingle ? "Upload exactly 1 photo." : `Upload exactly ${quantity} photos — one per magnet.`}
+              </p>
+
+              {photos.length > 0 && (
+                <div className="flex flex-wrap gap-3 mb-4">
+                  {photos.map((file, i) => (
+                    <div key={i} className="relative w-20 h-20 rounded-lg overflow-hidden border border-gray-200 group">
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img src={URL.createObjectURL(file)} alt={`Photo ${i + 1}`} className="w-full h-full object-cover" />
+                      <button
+                        type="button"
+                        onClick={() => removePhoto(i)}
+                        className="absolute top-1 right-1 bg-white/90 text-red-500 rounded-full p-1 opacity-0 group-hover:opacity-100 transition shadow"
+                      >
+                        <X className="w-3 h-3" />
+                      </button>
+                    </div>
+                  ))}
+                  {!isSingle && photos.length < quantity && (
+                    <label className="w-20 h-20 rounded-lg border-2 border-dashed border-gray-300 flex flex-col items-center justify-center text-gray-400 hover:border-gray-400 cursor-pointer transition">
+                      <Plus className="w-5 h-5" />
+                      <input type="file" multiple accept="image/*" className="hidden" onChange={(e) => handleFiles(e.target.files)} />
+                    </label>
+                  )}
+                </div>
+              )}
+
+              {(photos.length === 0 || (isSingle && photos.length === 0)) && (
+                <label className="block border-2 border-dashed border-gray-200 rounded-xl py-8 px-4 text-center text-gray-400 hover:border-gray-400 cursor-pointer">
+                  <UploadCloud className="w-8 h-8 mx-auto mb-2 text-gray-400" />
+                  <span className="text-[14px] font-semibold block text-gray-500">Click to browse or drag & drop</span>
+                  <span className="text-[12px] mt-1 block">PNG, JPG, HEIC accepted</span>
+                  <input
+                    ref={fileInputRef}
+                    type="file"
+                    multiple={!isSingle}
+                    accept="image/*"
+                    className="hidden"
+                    onChange={(e) => handleFiles(e.target.files)}
+                  />
+                </label>
+              )}
+            </div>
+
+            {/* SPECIAL INSTRUCTIONS */}
+            <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
+              <h2 className="text-[13px] font-bold text-[#111827] mb-1 uppercase tracking-wider">3. Special Instructions</h2>
+              <p className="text-[13px] text-gray-400 mb-4">Any notes about layout, sizing, or your order? Let us know here.</p>
+              <textarea
+                value={comments}
+                onChange={(e) => setComments(e.target.value)}
+                rows={3}
+                placeholder="e.g. Please keep the photos in the order I uploaded them..."
+                className="w-full border border-gray-200 rounded-xl px-4 py-3 text-[14px] focus:outline-none focus:border-black transition resize-none placeholder-gray-300"
+              />
             </div>
 
             {error && (
