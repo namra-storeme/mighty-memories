@@ -1,8 +1,9 @@
 import Link from "next/link";
-import Image from "next/image";
-import { ArrowRight, Image as ImageIcon, Star, Zap, Heart } from "lucide-react";
+import { Image as ImageIcon, Star } from "lucide-react";
 import ReviewButton from "@/components/ReviewButton";
 import { getDb } from "@/lib/firebase";
+import PhotoSlider from "@/components/PhotoSlider";
+import ReviewsSection from "@/components/ReviewsSection";
 
 export const dynamic = "force-dynamic";
 
@@ -83,25 +84,14 @@ export default async function Home() {
 
       {/* Our Creations Section */}
       <section className="py-20 bg-white">
-        <div className="max-w-7xl mx-auto px-4">
+        <div className="max-w-7xl mx-auto px-8">
           <div className="text-center mb-12">
             <h2 className="text-3xl font-extrabold text-gray-900 mb-4 tracking-tight">Our Creations</h2>
             <p className="text-gray-500 text-sm max-w-2xl mx-auto">Take a look at some of the beautiful custom magnets we've made for our amazing customers.</p>
           </div>
           
           {photos.length > 0 ? (
-            <div className="grid grid-cols-2 md:grid-cols-3 gap-4 lg:gap-6">
-              {photos.map((photo) => (
-                <div key={photo.id} className="relative aspect-square rounded-2xl overflow-hidden shadow-sm group bg-gray-100">
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img
-                    src={photo.url}
-                    alt="Customer Creation"
-                    className="w-full h-full object-cover group-hover:scale-105 transition duration-500"
-                  />
-                </div>
-              ))}
-            </div>
+            <PhotoSlider photos={photos} />
           ) : (
             <div className="text-center py-12 text-gray-400">
               <ImageIcon className="w-12 h-12 mx-auto mb-3 opacity-20" />
@@ -111,7 +101,7 @@ export default async function Home() {
         </div>
       </section>
 
-      {/* Reviews Section (Google Style) */}
+      {/* Reviews Section */}
       <section className="py-24 bg-[#fafafa]">
         <div className="max-w-7xl mx-auto px-4">
           <div className="text-center mb-12 flex flex-col items-center">
@@ -128,61 +118,31 @@ export default async function Home() {
               <span className="text-blue-500 text-lg font-bold ml-1">G</span>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 w-full max-w-5xl">
-              {reviews.length === 0 ? (
-                // Dummy reviews if db is empty to match layout
-                <>
-                  {[1, 2, 3].map((i) => (
-                    <div key={i} className="bg-[#f9f9f9] rounded-2xl p-6 text-left shadow-sm">
-                      <div className="flex items-center justify-between mb-4">
-                        <div className="flex items-center gap-3">
-                          <div className="w-10 h-10 rounded-full bg-purple-500 text-white flex items-center justify-center font-bold text-lg">
-                            J
-                          </div>
-                          <div>
-                            <p className="font-bold text-sm text-gray-900">Jared Newman</p>
-                            <p className="text-[10px] text-gray-400">last month</p>
-                          </div>
-                        </div>
-                        <span className="text-blue-500 font-bold text-lg">G</span>
-                      </div>
-                      <div className="flex text-yellow-400 mb-3">
-                        <Star className="w-3 h-3 fill-current" /><Star className="w-3 h-3 fill-current" /><Star className="w-3 h-3 fill-current" /><Star className="w-3 h-3 fill-current" /><Star className="w-3 h-3 fill-current" />
-                      </div>
-                      <p className="text-xs text-gray-600">Lovely people, good product</p>
-                    </div>
-                  ))}
-                </>
-              ) : (
-                reviews.map((review) => (
-                  <div key={review.id} className="bg-[#f9f9f9] rounded-2xl p-6 text-left shadow-sm">
+            {reviews.length === 0 ? (
+              // Dummy reviews if db is empty
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-6 w-full max-w-5xl">
+                {[1, 2, 3].map((i) => (
+                  <div key={i} className="bg-[#f9f9f9] rounded-2xl p-6 text-left shadow-sm">
                     <div className="flex items-center justify-between mb-4">
                       <div className="flex items-center gap-3">
-                        {review.userImage ? (
-                          // eslint-disable-next-line @next/next/no-img-element
-                          <img src={review.userImage} alt="" className="w-10 h-10 rounded-full" />
-                        ) : (
-                          <div className="w-10 h-10 rounded-full bg-blue-500 text-white flex items-center justify-center font-bold text-lg">
-                            {review.userName.charAt(0)}
-                          </div>
-                        )}
+                        <div className="w-10 h-10 rounded-full bg-purple-500 text-white flex items-center justify-center font-bold text-lg">J</div>
                         <div>
-                          <p className="font-bold text-sm text-gray-900">{review.userName}</p>
+                          <p className="font-bold text-sm text-gray-900">Jared Newman</p>
                           <p className="text-[10px] text-gray-400">last month</p>
                         </div>
                       </div>
                       <span className="text-blue-500 font-bold text-lg">G</span>
                     </div>
                     <div className="flex text-yellow-400 mb-3">
-                      {[...Array(5)].map((_, i) => (
-                        <Star key={i} className={`w-3 h-3 ${i < review.rating ? "fill-current" : "text-gray-300"}`} />
-                      ))}
+                      <Star className="w-3 h-3 fill-current" /><Star className="w-3 h-3 fill-current" /><Star className="w-3 h-3 fill-current" /><Star className="w-3 h-3 fill-current" /><Star className="w-3 h-3 fill-current" />
                     </div>
-                    <p className="text-xs text-gray-600">"{review.text}"</p>
+                    <p className="text-xs text-gray-600">Lovely people, good product</p>
                   </div>
-                ))
-              )}
-            </div>
+                ))}
+              </div>
+            ) : (
+              <ReviewsSection reviews={reviews} />
+            )}
           </div>
         </div>
       </section>

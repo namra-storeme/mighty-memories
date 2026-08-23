@@ -114,9 +114,17 @@ export default function ReviewsPage() {
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {reviews.map(review => (
-              <div key={review.id} className="bg-white rounded-3xl p-6 shadow-sm border border-gray-100 flex flex-col h-full">
+              <div key={review.id} className="bg-white rounded-3xl p-6 shadow-sm border border-gray-100 flex flex-col">
                 <div className="flex items-center justify-between mb-4">
-                  <div className="font-bold text-gray-900">{review.userName}</div>
+                  <div className="flex items-center gap-3">
+                    <div
+                      className="w-10 h-10 rounded-full flex items-center justify-center font-bold text-lg text-white shrink-0"
+                      style={{ background: `hsl(${(review.userName.charCodeAt(0) * 40) % 360}, 55%, 52%)` }}
+                    >
+                      {review.userName.charAt(0).toUpperCase()}
+                    </div>
+                    <div className="font-bold text-gray-900 text-sm">{review.userName}</div>
+                  </div>
                   <div className="flex text-yellow-400">
                     {[...Array(5)].map((_, i) => (
                       <Star key={i} className={`w-4 h-4 ${i < review.rating ? "fill-current" : "text-gray-200"}`} />
@@ -124,10 +132,10 @@ export default function ReviewsPage() {
                   </div>
                 </div>
                 
-                <p className="text-gray-600 text-sm flex-grow mb-6 italic">"{review.text}"</p>
+                <p className="text-gray-600 text-sm leading-relaxed italic flex-grow">"{review.text}"</p>
                 
                 {review.photoUrl && (
-                  <div className="mt-auto rounded-xl overflow-hidden aspect-square border border-gray-100">
+                  <div className="mt-4 rounded-xl overflow-hidden aspect-square border border-gray-100">
                     {/* eslint-disable-next-line @next/next/no-img-element */}
                     <img src={review.photoUrl} alt="Review attachment" className="w-full h-full object-cover hover:scale-105 transition duration-500" />
                   </div>

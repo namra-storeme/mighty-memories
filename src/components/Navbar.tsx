@@ -20,12 +20,7 @@ export default function Navbar() {
 
   return (
     <header className="w-full bg-white border-b border-gray-100 sticky top-0 z-50">
-      {/* Announcement Bar */}
-      <div className="bg-white border-b border-gray-100 py-1.5 px-4 text-center text-[10px] tracking-widest text-gray-600 uppercase font-medium flex justify-center items-center gap-4">
-        <span>&lt;</span>
-        <span>$8.95 FLAT RATE SHIPPING AUSTRALIA WIDE</span>
-        <span>&gt;</span>
-      </div>
+
 
       <div className="max-w-7xl mx-auto w-full px-4 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between py-3">
