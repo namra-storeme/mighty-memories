@@ -82,6 +82,11 @@ export async function POST(req: Request) {
           </div>`
         : "";
 
+      // Read exact values sent from the frontend — no reverse engineering
+      const subtotalNum = parseFloat(formData.get("subtotalAmount") as string) || 0;
+      const shippingNum = parseFloat(formData.get("shippingAmount") as string) || 0;
+      const freeShipping = shippingNum === 0;
+
       const adminSub = settings?.adminNewOrderSubject || `🎉 New Order from ${name}`;
       const adminBody = settings?.adminNewOrderBody || `You have received a new order. Please check the admin dashboard for details.`;
       const receiptSub = settings?.receiptEmailSubject || "Your Order is Processing! - m2 Mighty Memories";
@@ -135,10 +140,6 @@ export async function POST(req: Request) {
           </div>`
         : "";
 
-      // Read exact values sent from the frontend — no reverse engineering
-      const subtotalNum = parseFloat(formData.get("subtotalAmount") as string) || 0;
-      const shippingNum = parseFloat(formData.get("shippingAmount") as string) || 0;
-      const freeShipping = shippingNum === 0;
 
       const customerEmailPromise = transporter.sendMail({
         from: `"m2 Mighty Memories" <${process.env.SMTP_USER}>`,
