@@ -7,7 +7,7 @@ export async function POST(req: Request) {
   try {
     const formData = await req.formData();
     const quantity = parseInt(formData.get("quantity") as string, 10);
-    const comments = (formData.get("notes") as string) || (formData.get("comments") as string) || "";
+    const comments = formData.get("comments") as string || "";
     const totalAmount = parseFloat(formData.get("totalAmount") as string) || 0;
     const productType = formData.get("productType") as string;
     const packageDetails = formData.get("packageDetails") as string;
@@ -15,7 +15,6 @@ export async function POST(req: Request) {
     const email = formData.get("email") as string;
     const phone = formData.get("phone") as string;
     const address = formData.get("address") as string;
-    const shippingCost = quantity >= 40 ? 0 : 8.99;
 
     if (!name || !email || !phone || !address || !productType) {
       return NextResponse.json({ error: "Missing required contact details" }, { status: 400 });
@@ -129,42 +128,39 @@ export async function POST(req: Request) {
           </div>`
         : "";
 
+      const unitPriceNum = parseFloat((totalAmount / quantity).toFixed(2)) || 0;
+      const subtotalNum = unitPriceNum * quantity;
+      const shippingNum = parseFloat((totalAmount - subtotalNum).toFixed(2));
+      const freeShipping = shippingNum <= 0;
+
       const customerEmailPromise = transporter.sendMail({
         from: `"m2 Mighty Memories" <${process.env.SMTP_USER}>`,
         to: email,
         subject: receiptSub,
         html: `
           <div style="font-family:Arial,sans-serif;max-width:600px;margin:0 auto;border:1px solid #e5e7eb;border-radius:12px;overflow:hidden;">
-            <div style="background:linear-gradient(135deg,#2563eb,#7c3aed);color:white;padding:28px 32px;text-align:center;">
-              <h1 style="margin:0;font-size:24px;">Order Received!</h1>
+            <div style="background:linear-gradient(135deg,#111827,#374151);color:white;padding:28px 32px;text-align:center;">
+              <h1 style="margin:0;font-size:24px;">🎉 Order Received!</h1>
+              <p style="margin:8px 0 0;opacity:0.75;font-size:14px;">Order ID: <strong>${orderId}</strong></p>
             </div>
             <div style="padding:32px;background:#fff;">
               <h2 style="margin:0 0 12px;color:#111827;font-size:18px;">Hi ${name.split(" ")[0]},</h2>
-              <p style="margin:0 0 16px;color:#4b5563;font-size:16px;line-height:1.5;">${receiptBody.replace(/\n/g, '<br>')}</p>
-              <div style="background:#f9fafb;padding:20px;border-radius:12px;border:1px solid #e5e7eb;">
+              <p style="margin:0 0 20px;color:#4b5563;font-size:15px;line-height:1.6;">${receiptBody.replace(/\n/g, '<br>')}</p>
+
+              <div style="background:#f9fafb;padding:20px;border-radius:12px;border:1px solid #e5e7eb;margin-bottom:24px;">
                 <h3 style="margin:0 0 16px;color:#111827;font-size:16px;">Order Summary</h3>
-                <div style="display:flex;justify-content:space-between;margin-bottom:8px;color:#4b5563;">
-                  <span>${productType}</span>
-                  <span style="font-weight:600;color:#111827;">${quantity} magnets</span>
-                </div>
-                <div style="display:flex;justify-content:space-between;margin-bottom:8px;color:#4b5563;">
-                  <span>Package</span>
-                  <span>${packageDetails}</span>
-                </div>
-                <div style="display:flex;justify-content:space-between;margin-bottom:8px;color:#4b5563;">
-                  <span>Shipping</span>
-                  <span style="color:${shippingCost === 0 ? '#16a34a' : '#4b5563'};font-weight:${shippingCost === 0 ? '700' : '400'};">
-                    ${shippingCost === 0 ? 'FREE 🎉' : `$${shippingCost.toFixed(2)} AUD`}
-                  </span>
-                </div>
-                <div style="display:flex;justify-content:space-between;padding-top:12px;border-top:1px solid #e5e7eb;font-weight:700;color:#111827;font-size:16px;">
-                  <span>Total</span>
-                  <span>$${totalAmount.toFixed(2)} AUD</span>
-                </div>
+                <table style="width:100%;border-collapse:collapse;">
+                  <tr><td style="padding:8px 0;color:#6b7280;font-size:14px;">Product</td><td style="padding:8px 0;color:#111827;font-weight:600;text-align:right;">${productType}</td></tr>
+                  <tr><td style="padding:8px 0;color:#6b7280;font-size:14px;">Package</td><td style="padding:8px 0;color:#111827;text-align:right;font-size:14px;">${packageDetails}</td></tr>
+                  <tr><td style="padding:8px 0;color:#6b7280;font-size:14px;">Subtotal</td><td style="padding:8px 0;color:#111827;text-align:right;">$${subtotalNum.toFixed(2)} AUD</td></tr>
+                  <tr><td style="padding:8px 0;color:#6b7280;font-size:14px;">Shipping</td><td style="padding:8px 0;text-align:right;${freeShipping ? 'color:#16a34a;font-weight:600;' : ''}"> ${freeShipping ? 'FREE 🎉' : `$${shippingNum.toFixed(2)} AUD`}</td></tr>
+                  <tr style="border-top:2px solid #e5e7eb;"><td style="padding:12px 0 4px;color:#111827;font-weight:700;font-size:16px;">Total</td><td style="padding:12px 0 4px;color:#111827;font-weight:700;font-size:16px;text-align:right;">$${totalAmount.toFixed(2)} AUD</td></tr>
+                </table>
               </div>
-              <div style="margin-top:24px;">
+
+              <div style="margin-bottom:24px;">
                 <h3 style="margin:0 0 8px;color:#111827;font-size:16px;">Shipping To:</h3>
-                <p style="margin:0;color:#6b7280;line-height:1.5;">${name}<br>${address.replace(/\n/g, "<br>")}</p>
+                <p style="margin:0;color:#6b7280;line-height:1.6;font-size:14px;">${name}<br>${address.replace(/\n/g, "<br>")}</p>
               </div>
               ${customerPhotoHtml}
             </div>

@@ -1,19 +1,21 @@
 ﻿"use client";
 
 import { useState, useRef } from "react";
-import { UploadCloud, X, Loader2, ChevronRight, ChevronLeft, Plus, Truck, CheckCircle2 } from "lucide-react";
+import { UploadCloud, Loader2, X, Plus, Minus, Package, ImageIcon, Truck } from "lucide-react";
 import { useRouter } from "next/navigation";
 
-// ─── Pricing Logic ────────────────────────────────────────────────
-type ProductType = "custom" | "single";
+type ProductType = "Custom Photo Magnets" | "Single Picture Magnets" | null;
 
+// ── Pricing helpers ──────────────────────────────────────────────────────────
+const SHIPPING = 8.99;
 const FREE_SHIPPING_QTY = 40;
-const SHIPPING_COST = 8.99;
 
 function getUnitPrice(product: ProductType, qty: number): number {
-  if (product === "single") return 3.5;
-  // custom photo magnets
-  return qty >= 6 ? 4 : 5;
+  if (product === "Custom Photo Magnets") {
+    return qty >= 6 ? 4 : 5;
+  }
+  // Single Picture Magnets
+  return 3.5;
 }
 
 function getSubtotal(product: ProductType, qty: number): number {
@@ -21,448 +23,404 @@ function getSubtotal(product: ProductType, qty: number): number {
 }
 
 function getShipping(qty: number): number {
-  return qty >= FREE_SHIPPING_QTY ? 0 : SHIPPING_COST;
+  return qty >= FREE_SHIPPING_QTY ? 0 : SHIPPING;
 }
 
 function getTotal(product: ProductType, qty: number): number {
   return getSubtotal(product, qty) + getShipping(qty);
 }
 
-// ─── Component ────────────────────────────────────────────────────
+// ── Min quantities ───────────────────────────────────────────────────────────
+const MIN_QTY: Record<string, number> = {
+  "Custom Photo Magnets": 3,
+  "Single Picture Magnets": 10,
+};
+
 export default function ShopPage() {
   const router = useRouter();
 
-  // Step 1 state
-  const [product, setProduct] = useState<ProductType | null>(null);
-  const [qty, setQty] = useState<number>(3);
-  const [qtyInput, setQtyInput] = useState<string>("3");
+  const [productType, setProductType] = useState<ProductType>(null);
+  const [quantity, setQuantity] = useState<number>(3);
   const [photos, setPhotos] = useState<File[]>([]);
-  const [notes, setNotes] = useState("");
-  const [step1Error, setStep1Error] = useState("");
-
-  // Step 2 state
-  const [step, setStep] = useState(1);
+  const [comments, setComments] = useState("");
+  const [step, setStep] = useState<1 | 2>(1);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [submitError, setSubmitError] = useState("");
-
+  const [error, setError] = useState("");
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  // ── Derived ──
-  const minQty = product === "single" ? 10 : 3;
-
-  const handleProductSelect = (p: ProductType) => {
-    setProduct(p);
-    const min = p === "single" ? 10 : 3;
-    setQty(min);
-    setQtyInput(String(min));
+  // ── Product selection ──────────────────────────────────────────────────────
+  function selectProduct(p: ProductType) {
+    setProductType(p);
+    setQuantity(MIN_QTY[p!]);
     setPhotos([]);
-    setStep1Error("");
-  };
+    setError("");
+  }
 
-  const handleQtyChange = (val: string) => {
-    setQtyInput(val);
-    const n = parseInt(val, 10);
-    if (!isNaN(n) && n >= minQty) {
-      setQty(n);
-      // If single picture — only 1 photo needed regardless
-      if (product === "custom" && photos.length > n) {
-        setPhotos((prev) => prev.slice(0, n));
-      }
+  // ── Quantity stepper ────────────────────────────────────────────────────────
+  function changeQty(delta: number) {
+    if (!productType) return;
+    const min = MIN_QTY[productType];
+    const next = Math.max(min, quantity + delta);
+    setQuantity(next);
+    // Trim photos if needed
+    if (productType === "Custom Photo Magnets") {
+      setPhotos((prev) => prev.slice(0, next));
     }
-  };
+  }
 
-  const handleQtyBlur = () => {
-    const n = parseInt(qtyInput, 10);
-    if (isNaN(n) || n < minQty) {
-      setQty(minQty);
-      setQtyInput(String(minQty));
+  // ── Photo upload ───────────────────────────────────────────────────────────
+  function handleFiles(incoming: FileList | null) {
+    if (!incoming || !productType) return;
+    const files = Array.from(incoming);
+    if (productType === "Single Picture Magnets") {
+      setPhotos([files[0]]);
+    } else {
+      setPhotos((prev) => {
+        const combined = [...prev, ...files];
+        return combined.slice(0, quantity); // cap at chosen qty
+      });
     }
-  };
+  }
 
-  const handleAddPhotos = (files: FileList | null) => {
-    if (!files) return;
-    const maxPhotos = product === "single" ? 1 : qty;
-    const incoming = Array.from(files);
-    setPhotos((prev) => {
-      const combined = [...prev, ...incoming];
-      return combined.slice(0, maxPhotos);
-    });
-  };
+  function removePhoto(idx: number) {
+    setPhotos((prev) => prev.filter((_, i) => i !== idx));
+  }
 
-  const handleRemovePhoto = (i: number) => {
-    setPhotos((prev) => prev.filter((_, idx) => idx !== i));
-  };
+  // ── Validation ─────────────────────────────────────────────────────────────
+  function validate() {
+    if (!productType) return "Please select a product.";
+    if (productType === "Custom Photo Magnets" && photos.length < quantity)
+      return `Please upload all ${quantity} photo${quantity > 1 ? "s" : ""} (${photos.length}/${quantity} uploaded).`;
+    if (productType === "Single Picture Magnets" && photos.length === 0)
+      return "Please upload 1 photo.";
+    return "";
+  }
 
-  const handleProceed = () => {
-    if (!product) return setStep1Error("Please select a product type.");
-    const n = parseInt(qtyInput, 10);
-    if (isNaN(n) || n < minQty) return setStep1Error(`Minimum quantity is ${minQty}.`);
-
-    const requiredPhotos = product === "single" ? 1 : n;
-    if (photos.length < requiredPhotos) {
-      return setStep1Error(
-        product === "single"
-          ? "Please upload 1 photo for the single picture bulk order."
-          : `Please upload all ${n} photos (you have ${photos.length}).`
-      );
-    }
-    setStep1Error("");
+  function handleProceed() {
+    const err = validate();
+    if (err) return setError(err);
+    setError("");
     setStep(2);
-    window.scrollTo({ top: 0, behavior: "smooth" });
-  };
+  }
 
-  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
+  // ── Submit ─────────────────────────────────────────────────────────────────
+  async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
     setIsSubmitting(true);
-    setSubmitError("");
+    setError("");
 
-    const formEl = e.currentTarget;
-    const formData = new FormData(formEl);
+    const formData = new FormData(e.currentTarget);
+    formData.set("productType", productType!);
+    formData.set(
+      "packageDetails",
+      `${quantity} magnets @ $${getUnitPrice(productType, quantity).toFixed(2)} each`
+    );
+    formData.set("quantity", quantity.toString());
+    formData.set("totalAmount", getTotal(productType, quantity).toFixed(2));
 
-    const subtotal = getSubtotal(product!, qty);
-    const shipping = getShipping(qty);
-    const total = subtotal + shipping;
-
-    formData.append("productType", product === "custom" ? "Custom Photo Magnets" : "Single Picture Bulk");
-    formData.append("packageDetails", `${qty} magnets @ $${getUnitPrice(product!, qty).toFixed(2)} each`);
-    formData.append("quantity", String(qty));
-    formData.append("totalAmount", total.toFixed(2));
-    formData.append("notes", notes);
-
-    photos.forEach((file, i) => {
-      formData.append(`photo-${i}`, file);
-    });
+    photos.forEach((file, i) => formData.append(`photo-${i}`, file));
 
     try {
       const res = await fetch("/api/order/submit", { method: "POST", body: formData });
       const data = await res.json();
-      if (!res.ok) throw new Error(data.error || "Failed to place order.");
+      if (!res.ok) throw new Error(data.error || "Failed to process order.");
       router.push("/success");
     } catch (err: unknown) {
-      setSubmitError(err instanceof Error ? err.message : "An error occurred.");
+      setError(err instanceof Error ? err.message : "An error occurred");
       setIsSubmitting(false);
     }
-  };
+  }
 
-  // ── Render helpers ──
-  const unitPrice = product ? getUnitPrice(product, qty) : 0;
-  const subtotal = product ? getSubtotal(product, qty) : 0;
-  const shipping = getShipping(qty);
-  const total = subtotal + shipping;
-  const freeShipping = qty >= FREE_SHIPPING_QTY;
-  const requiredPhotos = product === "single" ? 1 : qty;
+  // ── Derived ────────────────────────────────────────────────────────────────
+  const unitPrice = productType ? getUnitPrice(productType, quantity) : 0;
+  const subtotal = productType ? getSubtotal(productType, quantity) : 0;
+  const shipping = getShipping(quantity);
+  const total = productType ? getTotal(productType, quantity) : 0;
+  const freeShipping = quantity >= FREE_SHIPPING_QTY;
+  const isSingle = productType === "Single Picture Magnets";
 
+  // ─────────────────────────────────────────────────────────────────────────
   return (
-    <div className="bg-gray-50 min-h-screen py-8 md:py-12">
+    <div className="bg-gray-50 min-h-screen py-10">
       <div className="max-w-2xl mx-auto px-4 sm:px-6">
 
-        {/* Page Header */}
         <div className="text-center mb-8">
-          <h1 className="text-2xl md:text-3xl font-extrabold text-gray-900 mb-2">Place Your Order</h1>
-          <p className="text-gray-500 text-sm">Select a product, upload your photos, and we'll handle the rest!</p>
+          <h1 className="text-3xl font-extrabold text-gray-900 mb-2">Place Your Order</h1>
+          <p className="text-gray-500 text-sm">Choose your product, upload your photos, and we'll handle the rest!</p>
         </div>
 
-        {/* ═══ STEP 1 ═══ */}
+        {/* ── STEP 1 ── */}
         {step === 1 && (
           <div className="space-y-5">
 
-            {/* 1. Product Selection */}
-            <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5 md:p-6">
-              <h2 className="text-base font-bold text-gray-900 mb-4">1. Select Product</h2>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            {/* Product Selector */}
+            <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6">
+              <h2 className="text-base font-bold text-gray-900 mb-4 uppercase tracking-wide">1. Choose Product</h2>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
 
                 {/* Custom Photo Magnets */}
                 <button
                   type="button"
-                  onClick={() => handleProductSelect("custom")}
-                  className={`relative p-4 rounded-xl border-2 text-left transition-all ${
-                    product === "custom"
-                      ? "border-black bg-gray-50 ring-1 ring-black"
+                  onClick={() => selectProduct("Custom Photo Magnets")}
+                  className={`rounded-2xl border-2 p-5 text-left transition-all ${
+                    productType === "Custom Photo Magnets"
+                      ? "border-black bg-gray-50 ring-2 ring-black"
                       : "border-gray-200 hover:border-gray-400 bg-white"
                   }`}
                 >
-                  {product === "custom" && (
-                    <CheckCircle2 className="absolute top-3 right-3 w-5 h-5 text-black" />
-                  )}
-                  <div className="w-full aspect-video rounded-lg overflow-hidden bg-gray-100 mb-3">
+                  <div className="w-full aspect-video rounded-xl overflow-hidden mb-4 bg-gray-100">
                     <img src="/photo_magnets.jpg" alt="Custom Photo Magnets" className="w-full h-full object-cover" />
                   </div>
-                  <p className="font-bold text-sm text-gray-900">Custom Photo Magnets</p>
-                  <p className="text-xs text-gray-500 mt-1">Different photo on each magnet. Min 3.</p>
-                  <p className="text-xs font-semibold text-green-700 mt-1">$5/each · $4/each for 6+</p>
+                  <div className="flex items-center gap-2 mb-1">
+                    <ImageIcon className="w-4 h-4 text-gray-600" />
+                    <span className="font-bold text-sm text-gray-900">Custom Photo Magnets</span>
+                  </div>
+                  <p className="text-xs text-gray-500 leading-relaxed">Different photos, each becomes its own magnet. Mix & match your favourite memories.</p>
+                  <div className="mt-3 space-y-0.5">
+                    <p className="text-xs font-semibold text-gray-700">$5.00/each (min 3)</p>
+                    <p className="text-xs text-green-600 font-semibold">$4.00/each for 6+</p>
+                    <p className="text-xs text-blue-600 font-semibold flex items-center gap-1 mt-1">
+                      <Truck className="w-3 h-3" /> Free shipping on 40+
+                    </p>
+                  </div>
                 </button>
 
-                {/* Single Picture Bulk */}
+                {/* Single Picture Magnets */}
                 <button
                   type="button"
-                  onClick={() => handleProductSelect("single")}
-                  className={`relative p-4 rounded-xl border-2 text-left transition-all ${
-                    product === "single"
-                      ? "border-black bg-gray-50 ring-1 ring-black"
+                  onClick={() => selectProduct("Single Picture Magnets")}
+                  className={`rounded-2xl border-2 p-5 text-left transition-all ${
+                    productType === "Single Picture Magnets"
+                      ? "border-black bg-gray-50 ring-2 ring-black"
                       : "border-gray-200 hover:border-gray-400 bg-white"
                   }`}
                 >
-                  {product === "single" && (
-                    <CheckCircle2 className="absolute top-3 right-3 w-5 h-5 text-black" />
-                  )}
-                  <div className="w-full aspect-video rounded-lg overflow-hidden bg-gray-100 mb-3">
-                    <img src="/single_bulk_magnets.jpg" alt="Single Picture Bulk" className="w-full h-full object-cover" />
+                  <div className="w-full aspect-video rounded-xl overflow-hidden mb-4 bg-gray-100">
+                    <img src="/single_bulk_magnets.jpg" alt="Single Picture Magnets" className="w-full h-full object-cover" />
                   </div>
-                  <p className="font-bold text-sm text-gray-900">Single Picture Bulk</p>
-                  <p className="text-xs text-gray-500 mt-1">Same photo on many magnets. Min 10.</p>
-                  <p className="text-xs font-semibold text-green-700 mt-1">$3.50/each</p>
+                  <div className="flex items-center gap-2 mb-1">
+                    <Package className="w-4 h-4 text-gray-600" />
+                    <span className="font-bold text-sm text-gray-900">Single Picture Magnets</span>
+                  </div>
+                  <p className="text-xs text-gray-500 leading-relaxed">One photo printed on many magnets. Perfect for events, gifts, and giveaways.</p>
+                  <div className="mt-3 space-y-0.5">
+                    <p className="text-xs font-semibold text-gray-700">$3.50/each (min 10)</p>
+                    <p className="text-xs text-blue-600 font-semibold flex items-center gap-1 mt-1">
+                      <Truck className="w-3 h-3" /> Free shipping on 40+
+                    </p>
+                  </div>
                 </button>
               </div>
-
-              {/* Free shipping badge */}
-              {product && (
-                <div className="mt-3 flex items-center gap-1.5 text-xs text-green-700 font-semibold bg-green-50 px-3 py-2 rounded-lg border border-green-100">
-                  <Truck className="w-3.5 h-3.5 shrink-0" />
-                  Free shipping on orders of 40+ magnets!
-                </div>
-              )}
             </div>
 
-            {/* 2. Quantity */}
-            {product && (
-              <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5 md:p-6">
-                <h2 className="text-base font-bold text-gray-900 mb-1">2. Choose Quantity</h2>
-                <p className="text-xs text-gray-400 mb-4">Minimum {minQty} magnets</p>
+            {/* Photo Upload + Comments + Quantity (shown after product selected) */}
+            {productType && (
+              <>
+                {/* Upload Photos */}
+                <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6">
+                  <h2 className="text-base font-bold text-gray-900 mb-1 uppercase tracking-wide">
+                    2. Upload {isSingle ? "Your Photo" : `Photos (${photos.length}/${quantity})`}
+                  </h2>
+                  <p className="text-xs text-gray-400 mb-4">
+                    {isSingle
+                      ? "Upload 1 photo — we'll print it on all your magnets."
+                      : `Upload exactly ${quantity} photo${quantity > 1 ? "s" : ""} — one per magnet.`}
+                  </p>
 
-                <div className="flex items-center gap-3">
-                  <button
-                    type="button"
-                    onClick={() => {
-                      const n = Math.max(minQty, qty - 1);
-                      setQty(n); setQtyInput(String(n));
-                      if (product === "custom" && photos.length > n) setPhotos((p) => p.slice(0, n));
-                    }}
-                    className="w-10 h-10 rounded-full border-2 border-gray-300 flex items-center justify-center text-gray-700 hover:border-black transition font-bold text-lg"
-                  >
-                    −
-                  </button>
-                  <input
-                    type="number"
-                    value={qtyInput}
-                    min={minQty}
-                    onChange={(e) => handleQtyChange(e.target.value)}
-                    onBlur={handleQtyBlur}
-                    className="w-20 text-center border-2 border-gray-300 rounded-xl py-2 text-lg font-bold focus:outline-none focus:border-black transition"
-                  />
-                  <button
-                    type="button"
-                    onClick={() => {
-                      const n = qty + 1;
-                      setQty(n); setQtyInput(String(n));
-                    }}
-                    className="w-10 h-10 rounded-full border-2 border-gray-300 flex items-center justify-center text-gray-700 hover:border-black transition font-bold text-lg"
-                  >
-                    +
-                  </button>
-                  <span className="text-sm text-gray-500">magnets</span>
-                </div>
+                  {/* Photo Grid */}
+                  {photos.length > 0 && (
+                    <div className="flex flex-wrap gap-3 mb-4">
+                      {photos.map((file, i) => (
+                        <div key={i} className="relative w-20 h-20 rounded-xl overflow-hidden border border-gray-200 group">
+                          {/* eslint-disable-next-line @next/next/no-img-element */}
+                          <img src={URL.createObjectURL(file)} alt={`Photo ${i + 1}`} className="w-full h-full object-cover" />
+                          <button
+                            type="button"
+                            onClick={() => removePhoto(i)}
+                            className="absolute top-1 right-1 bg-white/90 text-red-500 rounded-full p-0.5 opacity-0 group-hover:opacity-100 transition shadow"
+                          >
+                            <X className="w-3.5 h-3.5" />
+                          </button>
+                          <span className="absolute bottom-0 left-0 right-0 bg-black/40 text-white text-[9px] text-center py-0.5">#{i + 1}</span>
+                        </div>
+                      ))}
+                      {/* Add more button (Custom Photo only, if slots remain) */}
+                      {!isSingle && photos.length < quantity && (
+                        <label className="w-20 h-20 rounded-xl border-2 border-dashed border-gray-300 flex flex-col items-center justify-center text-gray-400 hover:border-black hover:text-black cursor-pointer transition">
+                          <Plus className="w-5 h-5" />
+                          <span className="text-[10px] mt-0.5">Add</span>
+                          <input type="file" multiple accept="image/*" className="hidden" onChange={(e) => handleFiles(e.target.files)} />
+                        </label>
+                      )}
+                    </div>
+                  )}
 
-                {/* Pricing info */}
-                <div className="mt-4 bg-gray-50 rounded-xl p-4 text-sm space-y-1 border border-gray-100">
-                  <div className="flex justify-between text-gray-600">
-                    <span>{qty} × ${unitPrice.toFixed(2)}</span>
-                    <span className="font-semibold">${subtotal.toFixed(2)}</span>
-                  </div>
-                  <div className="flex justify-between text-gray-600">
-                    <span>Shipping</span>
-                    <span className={freeShipping ? "text-green-600 font-semibold" : ""}>
-                      {freeShipping ? "FREE 🎉" : `+$${SHIPPING_COST.toFixed(2)}`}
-                    </span>
-                  </div>
-                  <div className="flex justify-between font-bold text-gray-900 pt-2 border-t border-gray-200">
-                    <span>Total</span>
-                    <span>${total.toFixed(2)} AUD</span>
-                  </div>
-                  {!freeShipping && (
-                    <p className="text-[11px] text-gray-400 pt-1">
-                      Order {FREE_SHIPPING_QTY - qty} more to get free shipping!
+                  {/* Drop Zone (shown when empty, or for single pick) */}
+                  {(photos.length === 0 || (isSingle && photos.length === 0)) && (
+                    <label className="block border-2 border-dashed border-gray-300 rounded-xl py-10 px-4 text-center text-gray-400 hover:border-black hover:text-black hover:bg-gray-50 transition cursor-pointer">
+                      <UploadCloud className="w-10 h-10 mx-auto mb-2" />
+                      <span className="text-sm font-semibold block">Click to browse or drag & drop</span>
+                      <span className="text-xs mt-1 block">PNG, JPG, HEIC accepted</span>
+                      <input
+                        ref={fileInputRef}
+                        type="file"
+                        multiple={!isSingle}
+                        accept="image/*"
+                        className="hidden"
+                        onChange={(e) => handleFiles(e.target.files)}
+                      />
+                    </label>
+                  )}
+
+                  {/* Upload button when Custom and all slots not filled */}
+                  {!isSingle && photos.length > 0 && photos.length < quantity && (
+                    <p className="text-xs text-amber-600 font-medium mt-3 text-center">
+                      {quantity - photos.length} more photo{quantity - photos.length > 1 ? "s" : ""} needed
                     </p>
                   )}
                 </div>
-              </div>
-            )}
 
-            {/* 3. Upload Photos */}
-            {product && (
-              <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5 md:p-6">
-                <h2 className="text-base font-bold text-gray-900 mb-1">3. Upload Your Photos</h2>
-                <p className="text-xs text-gray-400 mb-4">
-                  {product === "single"
-                    ? "Upload 1 photo — we'll print it on all your magnets."
-                    : `Upload up to ${qty} photo${qty > 1 ? "s" : ""} — one per magnet. (${photos.length}/${qty} uploaded)`}
-                </p>
+                {/* Comments */}
+                <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6">
+                  <h2 className="text-base font-bold text-gray-900 mb-1 uppercase tracking-wide">3. Special Instructions</h2>
+                  <p className="text-xs text-gray-400 mb-3">Any notes about layout, sizing, or your order? Let us know here.</p>
+                  <textarea
+                    value={comments}
+                    onChange={(e) => setComments(e.target.value)}
+                    rows={3}
+                    placeholder="e.g. Please keep the photos in the order I uploaded them..."
+                    className="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-black focus:ring-1 focus:ring-black transition resize-none"
+                  />
+                </div>
 
-                {/* Upload box */}
-                {photos.length < requiredPhotos && (
-                  <label className="flex flex-col items-center justify-center w-full border-2 border-dashed border-gray-300 rounded-xl py-8 cursor-pointer hover:border-black hover:bg-gray-50 transition text-center mb-4">
-                    <UploadCloud className="w-8 h-8 text-gray-400 mb-2" />
-                    <span className="text-sm font-semibold text-gray-700">Click to browse photos</span>
-                    <span className="text-xs text-gray-400 mt-1">PNG, JPG, HEIC — up to 50MB each</span>
-                    <input
-                      ref={fileInputRef}
-                      type="file"
-                      multiple={product === "custom"}
-                      accept="image/*"
-                      className="hidden"
-                      onChange={(e) => handleAddPhotos(e.target.files)}
-                    />
-                  </label>
-                )}
+                {/* Quantity + Pricing */}
+                <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6">
+                  <h2 className="text-base font-bold text-gray-900 mb-4 uppercase tracking-wide">4. Quantity</h2>
 
-                {/* Preview grid */}
-                {photos.length > 0 && (
-                  <div className="flex flex-wrap gap-3 mt-2">
-                    {photos.map((file, i) => (
-                      <div key={i} className="relative w-20 h-20 rounded-lg overflow-hidden border border-gray-200 group">
-                        {/* eslint-disable-next-line @next/next/no-img-element */}
-                        <img src={URL.createObjectURL(file)} alt="" className="w-full h-full object-cover" />
-                        <button
-                          type="button"
-                          onClick={() => handleRemovePhoto(i)}
-                          className="absolute top-0.5 right-0.5 bg-black/70 text-white rounded-full p-0.5 opacity-0 group-hover:opacity-100 transition"
-                        >
-                          <X className="w-3 h-3" />
-                        </button>
-                        <span className="absolute bottom-0 left-0 right-0 text-center text-[9px] text-white bg-black/50 py-0.5">
-                          Photo {i + 1}
-                        </span>
-                      </div>
-                    ))}
-                    {/* Add more button (for custom) */}
-                    {product === "custom" && photos.length < qty && (
-                      <label className="w-20 h-20 rounded-lg border-2 border-dashed border-gray-300 flex flex-col items-center justify-center text-gray-400 hover:border-black cursor-pointer transition">
-                        <Plus className="w-5 h-5" />
-                        <span className="text-[10px] mt-1">Add more</span>
-                        <input
-                          type="file"
-                          multiple
-                          accept="image/*"
-                          className="hidden"
-                          onChange={(e) => handleAddPhotos(e.target.files)}
-                        />
-                      </label>
-                    )}
+                  {/* Free shipping nudge */}
+                  {!freeShipping && (
+                    <p className="text-xs text-blue-600 font-semibold mb-4 flex items-center gap-1.5">
+                      <Truck className="w-3.5 h-3.5" />
+                      Free shipping on {FREE_SHIPPING_QTY}+ pieces!
+                    </p>
+                  )}
+                  {freeShipping && (
+                    <p className="text-xs text-green-600 font-semibold mb-4 flex items-center gap-1.5">
+                      <Truck className="w-3.5 h-3.5" />
+                      🎉 You qualify for FREE shipping!
+                    </p>
+                  )}
+
+                  {/* Stepper */}
+                  <div className="flex items-center gap-4 mb-5">
+                    <button
+                      type="button"
+                      onClick={() => changeQty(-1)}
+                      disabled={quantity <= MIN_QTY[productType]}
+                      className="w-10 h-10 rounded-full border border-gray-300 flex items-center justify-center text-gray-600 hover:border-black hover:text-black disabled:opacity-30 transition"
+                    >
+                      <Minus className="w-4 h-4" />
+                    </button>
+                    <span className="text-2xl font-extrabold text-gray-900 min-w-[2ch] text-center">{quantity}</span>
+                    <button
+                      type="button"
+                      onClick={() => changeQty(1)}
+                      className="w-10 h-10 rounded-full border border-gray-300 flex items-center justify-center text-gray-600 hover:border-black hover:text-black transition"
+                    >
+                      <Plus className="w-4 h-4" />
+                    </button>
+                    <span className="text-sm text-gray-400 ml-2">${unitPrice.toFixed(2)} each</span>
                   </div>
+
+                  {/* Price breakdown */}
+                  <div className="bg-gray-50 rounded-xl p-4 text-sm space-y-2">
+                    <div className="flex justify-between text-gray-600">
+                      <span>{quantity} × ${unitPrice.toFixed(2)}</span>
+                      <span>${subtotal.toFixed(2)}</span>
+                    </div>
+                    <div className="flex justify-between text-gray-600">
+                      <span>Shipping</span>
+                      {freeShipping
+                        ? <span className="text-green-600 font-semibold">FREE</span>
+                        : <span>${SHIPPING.toFixed(2)}</span>
+                      }
+                    </div>
+                    <div className="flex justify-between font-bold text-gray-900 text-base border-t border-gray-200 pt-2 mt-1">
+                      <span>Total</span>
+                      <span>${total.toFixed(2)} AUD</span>
+                    </div>
+                  </div>
+                </div>
+
+                {error && (
+                  <div className="bg-red-50 text-red-600 p-4 border border-red-100 rounded-xl text-sm font-medium">{error}</div>
                 )}
-              </div>
-            )}
 
-            {/* 4. Notes */}
-            {product && (
-              <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5 md:p-6">
-                <h2 className="text-base font-bold text-gray-900 mb-1">4. Notes / Special Instructions</h2>
-                <p className="text-xs text-gray-400 mb-3">Any special requests, size preferences, or instructions for us.</p>
-                <textarea
-                  rows={3}
-                  value={notes}
-                  onChange={(e) => setNotes(e.target.value)}
-                  placeholder="e.g. Please make the colours slightly warmer, or crop tightly to the faces..."
-                  className="w-full border border-gray-300 rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-black focus:ring-1 focus:ring-black transition resize-y"
-                />
-              </div>
-            )}
-
-            {/* Error */}
-            {step1Error && (
-              <div className="bg-red-50 text-red-600 p-4 rounded-xl text-sm font-medium border border-red-100">
-                {step1Error}
-              </div>
-            )}
-
-            {/* Proceed Button */}
-            {product && (
-              <button
-                type="button"
-                onClick={handleProceed}
-                className="w-full bg-black text-white py-4 rounded-xl font-bold uppercase tracking-wide hover:bg-gray-800 transition flex items-center justify-center gap-2 text-sm"
-              >
-                Proceed to Your Details
-                <ChevronRight className="w-5 h-5" />
-              </button>
+                <button
+                  type="button"
+                  onClick={handleProceed}
+                  className="w-full bg-black text-white py-4 rounded-2xl font-bold uppercase tracking-wide hover:bg-gray-800 transition text-sm"
+                >
+                  Continue to Your Details →
+                </button>
+              </>
             )}
           </div>
         )}
 
-        {/* ═══ STEP 2 ═══ */}
+        {/* ── STEP 2 ── */}
         {step === 2 && (
           <form onSubmit={handleSubmit} className="space-y-5">
-
-            {/* Order summary */}
-            <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5 md:p-6">
-              <h2 className="text-base font-bold text-gray-900 mb-3">Order Summary</h2>
-              <div className="bg-gray-50 rounded-xl p-4 text-sm space-y-1.5 border border-gray-100">
-                <div className="flex justify-between text-gray-700 font-semibold">
-                  <span>{product === "custom" ? "Custom Photo Magnets" : "Single Picture Bulk"}</span>
-                  <span>{qty} magnets</span>
-                </div>
-                <div className="flex justify-between text-gray-500">
-                  <span>Price per magnet</span>
-                  <span>${unitPrice.toFixed(2)}</span>
-                </div>
-                <div className="flex justify-between text-gray-500">
-                  <span>Subtotal</span>
-                  <span>${subtotal.toFixed(2)}</span>
-                </div>
-                <div className="flex justify-between text-gray-500">
-                  <span>Shipping</span>
-                  <span className={freeShipping ? "text-green-600 font-semibold" : ""}>{freeShipping ? "FREE 🎉" : `$${SHIPPING_COST.toFixed(2)}`}</span>
-                </div>
-                <div className="flex justify-between font-bold text-gray-900 pt-2 border-t border-gray-200 text-base">
-                  <span>Total</span>
-                  <span>${total.toFixed(2)} AUD</span>
-                </div>
+            {/* Order Summary bar */}
+            <div className="bg-black text-white rounded-2xl px-6 py-4 flex items-center justify-between">
+              <div>
+                <p className="text-xs opacity-60 uppercase tracking-wide">{productType}</p>
+                <p className="font-bold text-lg">${total.toFixed(2)} AUD</p>
               </div>
+              <button type="button" onClick={() => setStep(1)} className="text-xs opacity-60 hover:opacity-100 underline transition">
+                ← Edit order
+              </button>
             </div>
 
-            {/* Contact & Shipping */}
-            <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5 md:p-6">
-              <h2 className="text-base font-bold text-gray-900 mb-4">Contact & Shipping Details</h2>
+            <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6">
+              <h2 className="text-base font-bold text-gray-900 mb-5 uppercase tracking-wide">Your Contact & Shipping Details</h2>
               <div className="space-y-4">
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div>
-                    <label className="block text-xs font-bold text-gray-700 uppercase tracking-wide mb-1">Full Name *</label>
-                    <input type="text" name="name" required className="w-full border border-gray-300 px-4 py-3 rounded-xl text-sm focus:outline-none focus:border-black focus:ring-1 focus:ring-black transition" />
+                    <label className="block text-xs font-bold text-gray-600 uppercase tracking-wide mb-1.5">Full Name *</label>
+                    <input type="text" name="name" required className="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-black focus:ring-1 focus:ring-black transition" />
                   </div>
                   <div>
-                    <label className="block text-xs font-bold text-gray-700 uppercase tracking-wide mb-1">Email Address *</label>
-                    <input type="email" name="email" required className="w-full border border-gray-300 px-4 py-3 rounded-xl text-sm focus:outline-none focus:border-black focus:ring-1 focus:ring-black transition" />
+                    <label className="block text-xs font-bold text-gray-600 uppercase tracking-wide mb-1.5">Email Address *</label>
+                    <input type="email" name="email" required className="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-black focus:ring-1 focus:ring-black transition" />
                   </div>
                 </div>
                 <div>
-                  <label className="block text-xs font-bold text-gray-700 uppercase tracking-wide mb-1">Phone Number *</label>
-                  <input type="tel" name="phone" required className="w-full border border-gray-300 px-4 py-3 rounded-xl text-sm focus:outline-none focus:border-black focus:ring-1 focus:ring-black transition" />
+                  <label className="block text-xs font-bold text-gray-600 uppercase tracking-wide mb-1.5">Phone Number *</label>
+                  <input type="tel" name="phone" required className="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-black focus:ring-1 focus:ring-black transition" />
                 </div>
                 <div>
-                  <label className="block text-xs font-bold text-gray-700 uppercase tracking-wide mb-1">Shipping Address *</label>
-                  <textarea name="address" required rows={3} className="w-full border border-gray-300 px-4 py-3 rounded-xl text-sm focus:outline-none focus:border-black focus:ring-1 focus:ring-black transition resize-y" />
+                  <label className="block text-xs font-bold text-gray-600 uppercase tracking-wide mb-1.5">Shipping Address *</label>
+                  <textarea name="address" required rows={3} className="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-black focus:ring-1 focus:ring-black transition resize-none" placeholder="Street, Suburb, State, Postcode" />
                 </div>
+                <input type="hidden" name="comments" value={comments} />
               </div>
             </div>
 
-            {submitError && (
-              <div className="bg-red-50 text-red-600 p-4 rounded-xl text-sm font-medium border border-red-100">{submitError}</div>
+            {error && (
+              <div className="bg-red-50 text-red-600 p-4 border border-red-100 rounded-xl text-sm font-medium">{error}</div>
             )}
 
-            <div className="flex flex-col-reverse sm:flex-row gap-3 pt-2">
-              <button
-                type="button"
-                onClick={() => { setStep(1); window.scrollTo({ top: 0, behavior: "smooth" }); }}
-                className="flex items-center justify-center gap-2 text-gray-500 hover:text-black font-semibold text-sm transition py-3 px-4 rounded-xl border border-gray-200 hover:border-gray-400"
-              >
-                <ChevronLeft className="w-4 h-4" />
-                Back
+            <div className="flex flex-col-reverse sm:flex-row gap-3">
+              <button type="button" onClick={() => setStep(1)} className="text-gray-500 hover:text-black font-medium text-sm transition text-center py-3">
+                ← Back
               </button>
               <button
                 type="submit"
                 disabled={isSubmitting}
-                className="flex-1 bg-black text-white py-4 rounded-xl font-bold uppercase tracking-wide hover:bg-gray-800 transition flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed text-sm"
+                className="flex-1 bg-black text-white py-4 rounded-2xl font-bold uppercase tracking-wide hover:bg-gray-800 transition text-sm flex items-center justify-center gap-2 disabled:opacity-50"
               >
-                {isSubmitting ? <><Loader2 className="w-5 h-5 animate-spin" /> Processing...</> : "Submit Order"}
+                {isSubmitting ? <><Loader2 className="w-4 h-4 animate-spin" /> Processing...</> : "Submit Order"}
               </button>
             </div>
           </form>
