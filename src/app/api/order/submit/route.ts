@@ -7,7 +7,7 @@ export async function POST(req: Request) {
   try {
     const formData = await req.formData();
     const quantity = parseInt(formData.get("quantity") as string, 10);
-    const comments = formData.get("comments") as string || "";
+    const comments = (formData.get("notes") as string) || (formData.get("comments") as string) || "";
     const totalAmount = parseFloat(formData.get("totalAmount") as string) || 0;
     const productType = formData.get("productType") as string;
     const packageDetails = formData.get("packageDetails") as string;
@@ -15,6 +15,7 @@ export async function POST(req: Request) {
     const email = formData.get("email") as string;
     const phone = formData.get("phone") as string;
     const address = formData.get("address") as string;
+    const shippingCost = quantity >= 40 ? 0 : 8.99;
 
     if (!name || !email || !phone || !address || !productType) {
       return NextResponse.json({ error: "Missing required contact details" }, { status: 400 });
@@ -142,9 +143,23 @@ export async function POST(req: Request) {
               <p style="margin:0 0 16px;color:#4b5563;font-size:16px;line-height:1.5;">${receiptBody.replace(/\n/g, '<br>')}</p>
               <div style="background:#f9fafb;padding:20px;border-radius:12px;border:1px solid #e5e7eb;">
                 <h3 style="margin:0 0 16px;color:#111827;font-size:16px;">Order Summary</h3>
-                <div style="display:flex;justify-content:space-between;margin-bottom:12px;color:#4b5563;">
-                  <span>${productType} (${packageDetails})</span>
-                  <span style="font-weight:600;color:#111827;">$${totalAmount.toFixed(2)} AUD</span>
+                <div style="display:flex;justify-content:space-between;margin-bottom:8px;color:#4b5563;">
+                  <span>${productType}</span>
+                  <span style="font-weight:600;color:#111827;">${quantity} magnets</span>
+                </div>
+                <div style="display:flex;justify-content:space-between;margin-bottom:8px;color:#4b5563;">
+                  <span>Package</span>
+                  <span>${packageDetails}</span>
+                </div>
+                <div style="display:flex;justify-content:space-between;margin-bottom:8px;color:#4b5563;">
+                  <span>Shipping</span>
+                  <span style="color:${shippingCost === 0 ? '#16a34a' : '#4b5563'};font-weight:${shippingCost === 0 ? '700' : '400'};">
+                    ${shippingCost === 0 ? 'FREE 🎉' : `$${shippingCost.toFixed(2)} AUD`}
+                  </span>
+                </div>
+                <div style="display:flex;justify-content:space-between;padding-top:12px;border-top:1px solid #e5e7eb;font-weight:700;color:#111827;font-size:16px;">
+                  <span>Total</span>
+                  <span>$${totalAmount.toFixed(2)} AUD</span>
                 </div>
               </div>
               <div style="margin-top:24px;">
