@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import { useState, useRef } from "react";
 import { UploadCloud, Loader2, X, Plus, Minus, Truck } from "lucide-react";
@@ -111,7 +111,9 @@ export default function ShopPage() {
       `${quantity} magnets @ $${getUnitPrice(productType, quantity).toFixed(2)} each`
     );
     formData.set("quantity", quantity.toString());
-    formData.set("totalAmount", getTotal(productType, quantity).toFixed(2));
+    formData.set("subtotalAmount", subtotal.toFixed(2));
+    formData.set("shippingAmount", shipping.toFixed(2));
+    formData.set("totalAmount", total.toFixed(2));
 
     photos.forEach((file, i) => formData.append(`photo-${i}`, file));
 

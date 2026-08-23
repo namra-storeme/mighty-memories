@@ -96,22 +96,29 @@ export async function POST(req: Request) {
           <div style="font-family:Arial,sans-serif;max-width:600px;margin:0 auto;border:1px solid #e5e7eb;border-radius:12px;overflow:hidden;">
             <div style="background:linear-gradient(135deg,#2563eb,#7c3aed);color:white;padding:28px 32px;">
               <h1 style="margin:0;font-size:24px;">🎉 New Order Received!</h1>
-              <p style="margin:8px 0 0;opacity:0.85;">Total $${totalAmount.toFixed(2)} AUD</p>
+              <p style="margin:8px 0 0;opacity:0.85;font-size:15px;">Order ID: <strong>${orderId}</strong> &nbsp;·&nbsp; Total <strong>$${totalAmount.toFixed(2)} AUD</strong></p>
             </div>
             <div style="padding:28px 32px;background:#fff;">
-              <p style="color:#111827;font-size:16px;line-height:1.5;margin-bottom:24px;">${adminBody.replace(/\n/g, '<br>')}</p>
-              <h2 style="margin:0 0 20px;color:#111827;font-size:18px;">Order Details</h2>
-              <table style="width:100%;border-collapse:collapse;margin-bottom:20px;">
-                <tr><td style="padding:10px 0;color:#6b7280;font-weight:600;width:35%;">Product</td><td style="padding:10px 0;color:#111827;font-weight:700;">${productType}</td></tr>
-                <tr style="background:#f9fafb;"><td style="padding:10px 12px;color:#6b7280;font-weight:600;">Package</td><td style="padding:10px 12px;color:#111827;">${packageDetails}</td></tr>
-              </table>
-              <h2 style="margin:0 0 20px;color:#111827;font-size:18px;border-top:1px solid #e5e7eb;padding-top:20px;">Customer Details</h2>
-              <table style="width:100%;border-collapse:collapse;">
-                <tr><td style="padding:10px 0;color:#6b7280;font-weight:600;width:35%;">Name</td><td style="padding:10px 0;color:#111827;font-weight:700;">${name}</td></tr>
-                <tr style="background:#f9fafb;"><td style="padding:10px 12px;color:#6b7280;font-weight:600;">Email</td><td style="padding:10px 12px;"><a href="mailto:${email}" style="color:#2563eb;">${email}</a></td></tr>
-                <tr><td style="padding:10px 0;color:#6b7280;font-weight:600;">Phone</td><td style="padding:10px 0;color:#111827;">${phone}</td></tr>
-                <tr style="background:#f9fafb;"><td style="padding:10px 12px;color:#6b7280;font-weight:600;">Address</td><td style="padding:10px 12px;color:#111827;">${address}</td></tr>
-                <tr><td style="padding:10px 0;color:#6b7280;font-weight:600;">Comments</td><td style="padding:10px 0;color:#111827;">${comments || "None"}</td></tr>
+              <p style="color:#111827;font-size:15px;line-height:1.5;margin-bottom:24px;">${adminBody.replace(/\n/g, '<br>')}</p>
+
+              <h2 style="margin:0 0 16px;color:#111827;font-size:17px;">Order Summary</h2>
+              <div style="background:#f9fafb;border:1px solid #e5e7eb;border-radius:10px;padding:16px;margin-bottom:24px;">
+                <table style="width:100%;border-collapse:collapse;font-size:14px;">
+                  <tr><td style="padding:7px 0;color:#6b7280;width:40%;">Product</td><td style="padding:7px 0;color:#111827;font-weight:700;">${productType}</td></tr>
+                  <tr style="background:#f3f4f6;"><td style="padding:7px 8px;color:#6b7280;">Package</td><td style="padding:7px 8px;color:#111827;">${packageDetails}</td></tr>
+                  <tr><td style="padding:7px 0;color:#6b7280;">Subtotal</td><td style="padding:7px 0;color:#111827;">$${subtotalNum.toFixed(2)} AUD</td></tr>
+                  <tr style="background:#f3f4f6;"><td style="padding:7px 8px;color:#6b7280;">Shipping</td><td style="padding:7px 8px;${freeShipping ? 'color:#16a34a;font-weight:700;' : 'color:#111827;'}">${freeShipping ? 'FREE 🎉' : `$${shippingNum.toFixed(2)} AUD`}</td></tr>
+                  <tr style="border-top:2px solid #e5e7eb;"><td style="padding:10px 0 4px;color:#111827;font-weight:700;font-size:15px;">Total</td><td style="padding:10px 0 4px;color:#111827;font-weight:700;font-size:15px;">$${totalAmount.toFixed(2)} AUD</td></tr>
+                </table>
+              </div>
+
+              <h2 style="margin:0 0 16px;color:#111827;font-size:17px;border-top:1px solid #e5e7eb;padding-top:20px;">Customer Details</h2>
+              <table style="width:100%;border-collapse:collapse;font-size:14px;">
+                <tr><td style="padding:7px 0;color:#6b7280;font-weight:600;width:35%;">Name</td><td style="padding:7px 0;color:#111827;font-weight:700;">${name}</td></tr>
+                <tr style="background:#f9fafb;"><td style="padding:7px 8px;color:#6b7280;font-weight:600;">Email</td><td style="padding:7px 8px;"><a href="mailto:${email}" style="color:#2563eb;">${email}</a></td></tr>
+                <tr><td style="padding:7px 0;color:#6b7280;font-weight:600;">Phone</td><td style="padding:7px 0;color:#111827;">${phone}</td></tr>
+                <tr style="background:#f9fafb;"><td style="padding:7px 8px;color:#6b7280;font-weight:600;">Address</td><td style="padding:7px 8px;color:#111827;">${address}</td></tr>
+                <tr><td style="padding:7px 0;color:#6b7280;font-weight:600;">Comments</td><td style="padding:7px 0;color:#111827;">${comments || "None"}</td></tr>
               </table>
               ${photoHtml}
             </div>
@@ -128,10 +135,10 @@ export async function POST(req: Request) {
           </div>`
         : "";
 
-      const unitPriceNum = parseFloat((totalAmount / quantity).toFixed(2)) || 0;
-      const subtotalNum = unitPriceNum * quantity;
-      const shippingNum = parseFloat((totalAmount - subtotalNum).toFixed(2));
-      const freeShipping = shippingNum <= 0;
+      // Read exact values sent from the frontend — no reverse engineering
+      const subtotalNum = parseFloat(formData.get("subtotalAmount") as string) || 0;
+      const shippingNum = parseFloat(formData.get("shippingAmount") as string) || 0;
+      const freeShipping = shippingNum === 0;
 
       const customerEmailPromise = transporter.sendMail({
         from: `"m2 Mighty Memories" <${process.env.SMTP_USER}>`,
