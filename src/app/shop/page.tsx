@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import { useState, useRef } from "react";
 import { UploadCloud, Loader2, X, Plus, Minus, Truck, MapPin } from "lucide-react";
@@ -201,12 +201,6 @@ export default function ShopPage() {
                         <div>$4.00</div>
                         <div className="text-[#C49B76] font-bold">Save $6</div>
                       </div>
-                      <div className="grid grid-cols-4">
-                        <div>Bulk Orders</div>
-                        <div>$40+ order</div>
-                        <div>$4.00</div>
-                        <div className="text-[#C49B76] font-bold">Free Ship</div>
-                      </div>
                     </div>
                   ) : (
                     <div className="space-y-2 text-gray-600">
@@ -216,15 +210,12 @@ export default function ShopPage() {
                         <div>$3.50</div>
                         <div>—</div>
                       </div>
-                      <div className="grid grid-cols-4">
-                        <div>Bulk Orders</div>
-                        <div>$40+ order</div>
-                        <div>$3.50</div>
-                        <div className="text-[#C49B76] font-bold">Free Ship</div>
-                      </div>
                     </div>
                   )}
                 </div>
+                <p className="text-[11px] text-blue-600 font-semibold mt-2.5 flex items-center gap-1">
+                  🚚 Enjoy FREE Australia-wide delivery on all orders over $40!
+                </p>
               </div>
             </div>
 
