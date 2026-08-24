@@ -158,126 +158,122 @@ export default function ShopPage() {
               </button>
             </div>
 
-            {/* PRODUCT DETAILS CARD */}
-            <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
-              <div className="w-full aspect-[4/3] bg-gray-100">
+            {/* PRODUCT HERO CARD */}
+            <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
+              {/* Image with overlay title */}
+              <div className="relative w-full aspect-[4/3] bg-gray-100">
                 <img
                   src={productType === "Custom Photo Magnets" ? "/photo_magnets.jpg" : "/single_bulk_magnets.jpg"}
                   alt={productType}
                   className="w-full h-full object-cover"
                 />
+                <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/10 to-transparent" />
+                <div className="absolute bottom-0 left-0 right-0 p-4">
+                  <h1 className="text-white font-extrabold text-lg leading-tight drop-shadow">{productType}</h1>
+                  <p className="text-white/80 text-[12px] mt-0.5">
+                    {productType === "Custom Photo Magnets"
+                      ? "Personalized magnets from your photos, quotes, logos & more."
+                      : "One photo printed on every magnet — perfect for events & gifts."}
+                  </p>
+                </div>
               </div>
-              <div className="p-5">
-                <h1 className="text-xl font-bold text-[#111827] mb-0.5">{productType}</h1>
-                <p className="text-[#C49B76] font-semibold text-[15px] mb-3">
-                  ${productType === "Custom Photo Magnets" ? "5.00" : "3.50"} each
-                </p>
-                <p className="text-[13px] text-gray-500 leading-relaxed mb-4">
-                  {productType === "Custom Photo Magnets"
-                    ? "Custom personalized magnets made with your favorite photos, quotes, names, QR codes, logos, and more."
-                    : "Perfect for events, gifts, and giveaways. Upload one photo and we'll print it on all your magnets."}
-                </p>
 
-                {/* PRICING TABLE */}
-                <div className="bg-[#F4F1ED] rounded-lg p-3 text-[12px]">
-                  <div className="grid grid-cols-4 font-bold text-[#111827] mb-2 border-b border-gray-200 pb-1.5">
-                    <div>Bundle</div>
-                    <div>Price</div>
-                    <div>Per Magnet</div>
-                    <div>You Save</div>
-                  </div>
-
+              {/* Pricing pills */}
+              <div className="p-4">
+                <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-3">Pricing</p>
+                <div className="flex flex-wrap gap-2">
                   {productType === "Custom Photo Magnets" ? (
-                    <div className="space-y-2 text-gray-600">
-                      <div className="grid grid-cols-4">
-                        <div>Starter</div>
-                        <div>3 for $15</div>
-                        <div>$5.00</div>
-                        <div>—</div>
+                    <>
+                      <div className="flex-1 min-w-0 bg-[#fafafa] border border-gray-200 rounded-xl p-3 text-center">
+                        <p className="text-[10px] text-gray-400 font-semibold mb-1">3 – 5 pieces</p>
+                        <p className="text-[18px] font-extrabold text-[#111827] leading-none">$5.00</p>
+                        <p className="text-[10px] text-gray-400 mt-0.5">each</p>
                       </div>
-                      <div className="grid grid-cols-4">
-                        <div>Bundle & Save</div>
-                        <div>6 for $24</div>
-                        <div>$4.00</div>
-                        <div className="text-[#C49B76] font-bold">Save $6</div>
+                      <div className="flex-1 min-w-0 bg-[#111827] rounded-xl p-3 text-center relative">
+                        <span className="absolute -top-2 left-1/2 -translate-x-1/2 bg-[#C49B76] text-white text-[9px] font-bold px-2 py-0.5 rounded-full whitespace-nowrap">SAVE $6</span>
+                        <p className="text-[10px] text-white/60 font-semibold mb-1">6+ pieces</p>
+                        <p className="text-[18px] font-extrabold text-white leading-none">$4.00</p>
+                        <p className="text-[10px] text-white/50 mt-0.5">each</p>
                       </div>
-                    </div>
+                    </>
                   ) : (
-                    <div className="space-y-2 text-gray-600">
-                      <div className="grid grid-cols-4">
-                        <div>Starter</div>
-                        <div>10 for $35</div>
-                        <div>$3.50</div>
-                        <div>—</div>
-                      </div>
+                    <div className="flex-1 bg-[#111827] rounded-xl p-3 text-center">
+                      <p className="text-[10px] text-white/60 font-semibold mb-1">10+ pieces</p>
+                      <p className="text-[18px] font-extrabold text-white leading-none">$3.50</p>
+                      <p className="text-[10px] text-white/50 mt-0.5">each</p>
                     </div>
                   )}
                 </div>
-                <p className="text-[11px] text-blue-600 font-semibold mt-2.5 flex items-center gap-1">
-                  🚚 Enjoy FREE Australia-wide delivery on all orders over $40!
+                <p className="text-[11px] text-[#2563eb] font-semibold mt-3 flex items-center gap-1.5">
+                  🚚 FREE Australia-wide delivery on orders over $40!
                 </p>
               </div>
             </div>
 
-            {/* QUANTITY */}
-            <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-5">
-              <div className="flex items-center gap-3 mb-4">
-                <h2 className="text-[12px] font-bold text-[#111827] uppercase tracking-wider">1. Quantity</h2>
-                {qualifiesFreeShipping ? (
-                  <span className="text-[10px] font-bold text-green-600 flex items-center gap-1">
-                    <Truck className="w-3 h-3" /> Free shipping unlocked!
-                  </span>
-                ) : (
-                  <span className="text-[10px] font-bold text-gray-400 flex items-center gap-1">
-                    <Truck className="w-3 h-3" /> Free shipping on orders $40+
-                  </span>
-                )}
+            {/* QUANTITY + PRICE */}
+            <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
+              <div className="px-5 pt-5 pb-4">
+                <div className="flex items-center justify-between mb-5">
+                  <h2 className="text-[12px] font-bold text-[#111827] uppercase tracking-widest">1. Quantity</h2>
+                  {qualifiesFreeShipping ? (
+                    <span className="text-[10px] font-bold text-green-600 bg-green-50 border border-green-200 px-2 py-0.5 rounded-full flex items-center gap-1">
+                      <Truck className="w-3 h-3" /> Free shipping!
+                    </span>
+                  ) : (
+                    <span className="text-[10px] text-gray-400 flex items-center gap-1">
+                      <Truck className="w-3 h-3" /> Free on $40+
+                    </span>
+                  )}
+                </div>
+
+                {/* Stepper */}
+                <div className="flex items-center justify-between bg-[#fafafa] border border-gray-200 rounded-xl px-4 py-3 mb-4">
+                  <button
+                    type="button"
+                    onClick={() => changeQty(-1)}
+                    disabled={quantity <= MIN_QTY[productType]}
+                    className="w-9 h-9 rounded-lg bg-white border border-gray-200 flex items-center justify-center text-gray-600 hover:border-black hover:text-black disabled:opacity-25 transition shadow-sm"
+                  >
+                    <Minus className="w-3.5 h-3.5" />
+                  </button>
+                  <div className="text-center">
+                    <span className="text-3xl font-black text-[#111827] tabular-nums">{quantity}</span>
+                    <p className="text-[10px] text-gray-400 mt-0.5">${unitPrice.toFixed(2)} each</p>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => changeQty(1)}
+                    className="w-9 h-9 rounded-lg bg-white border border-gray-200 flex items-center justify-center text-gray-600 hover:border-black hover:text-black transition shadow-sm"
+                  >
+                    <Plus className="w-3.5 h-3.5" />
+                  </button>
+                </div>
+
+                {/* Price breakdown */}
+                <div className="space-y-2 text-[12px] mb-4">
+                  <div className="flex justify-between text-gray-500">
+                    <span>{quantity} × ${unitPrice.toFixed(2)}</span>
+                    <span>${subtotal.toFixed(2)}</span>
+                  </div>
+                  <div className="flex justify-between text-gray-500">
+                    <span>Shipping</span>
+                    {shippingCost === 0
+                      ? <span className="text-green-600 font-semibold">{localPickup ? "Free (Pickup)" : "FREE 🎉"}</span>
+                      : <span>${SHIPPING.toFixed(2)}</span>
+                    }
+                  </div>
+                </div>
               </div>
 
-              <div className="flex items-center gap-3 mb-4">
-                <button
-                  type="button"
-                  onClick={() => changeQty(-1)}
-                  disabled={quantity <= MIN_QTY[productType]}
-                  className="w-8 h-8 rounded-full border border-gray-300 flex items-center justify-center text-gray-600 hover:border-black hover:text-black disabled:opacity-30 transition"
-                >
-                  <Minus className="w-3 h-3" />
-                </button>
-                <span className="text-xl font-extrabold text-[#111827] min-w-[2ch] text-center">{quantity}</span>
-                <button
-                  type="button"
-                  onClick={() => changeQty(1)}
-                  className="w-8 h-8 rounded-full border border-gray-300 flex items-center justify-center text-gray-600 hover:border-black hover:text-black transition"
-                >
-                  <Plus className="w-3 h-3" />
-                </button>
-                <span className="text-[12px] font-medium text-gray-400 ml-2">${unitPrice.toFixed(2)} each</span>
+              {/* Total strip */}
+              <div className="bg-[#111827] px-5 py-3.5 flex items-center justify-between">
+                <span className="text-white/60 text-[12px] font-semibold uppercase tracking-wider">Total</span>
+                <span className="text-white font-black text-[18px]">${total.toFixed(2)} <span className="text-white/50 text-[12px] font-semibold">AUD</span></span>
               </div>
 
-              {/* Price Breakdown */}
-              <div className="bg-[#fafafa] rounded-lg p-3.5 text-[12px] space-y-2 border border-gray-100">
-                <div className="flex justify-between text-gray-500">
-                  <span>{quantity} × ${unitPrice.toFixed(2)}</span>
-                  <span>${subtotal.toFixed(2)}</span>
-                </div>
-                <div className="flex justify-between text-gray-500">
-                  <span>Shipping</span>
-                  {shippingCost === 0
-                    ? <span className="text-green-600 font-semibold">{localPickup ? "Free (Local Pickup)" : "FREE 🎉"}</span>
-                    : <span>${SHIPPING.toFixed(2)}</span>
-                  }
-                </div>
-                <div className="flex justify-between font-bold text-[#111827] text-[14px] border-t border-gray-200 pt-2 mt-1">
-                  <span>Total</span>
-                  <span>${total.toFixed(2)} AUD</span>
-                </div>
-              </div>
-
-              {/* LOCAL PICKUP OPTION */}
-              <div className="mt-3 rounded-lg border border-gray-200 overflow-hidden">
-                <label
-                  className={`flex items-start gap-3 p-3.5 cursor-pointer transition ${localPickup ? "bg-green-50 border-green-200" : "bg-white hover:bg-gray-50"}`}
-                >
+              {/* LOCAL PICKUP */}
+              <div className="px-5 py-3 border-t border-gray-100">
+                <label className={`flex items-start gap-3 cursor-pointer rounded-xl p-3 transition ${localPickup ? "bg-green-50 border border-green-200" : "border border-gray-100 hover:bg-gray-50"}`}>
                   <input
                     type="checkbox"
                     checked={localPickup}
@@ -290,9 +286,7 @@ export default function ShopPage() {
                       Free Local Pickup — Toongabbie, Sydney
                     </p>
                     <p className="text-[11px] text-gray-500 mt-1 leading-relaxed">
-                      Based in Sydney? Save on shipping by picking up your order directly from Toongabbie, NSW.
-                      For privacy, our full address is not listed here — once your order is ready, we will email
-                      you the exact pickup address and coordinate a convenient time.
+                      Based in Sydney? Save on shipping — we'll email you the pickup address and arrange a convenient time once your order is ready.
                     </p>
                   </div>
                 </label>
