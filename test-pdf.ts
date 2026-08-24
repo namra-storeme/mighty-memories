@@ -7,13 +7,14 @@ async function main() {
       orderId: "MM-TEST",
       date: "24/08/2026",
       customerName: "Test User",
+      customerAddress: "123 Test St\nSydney NSW 2000",
       productType: "Magnets",
       packageDetails: "25pcs",
-      subtotal: 15,
-      shipping: 8.99,
+      subtotal: 45,
+      shipping: 0,
       localPickup: false,
       tax: 0,
-      total: 23.99
+      total: 45
     };
     
     const settings = {

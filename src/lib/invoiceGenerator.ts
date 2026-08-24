@@ -4,6 +4,7 @@ interface InvoiceData {
   orderId: string;
   date: string;
   customerName: string;
+  customerAddress: string;
   productType: string;
   packageDetails: string;
   subtotal: number;
@@ -127,6 +128,13 @@ export async function generateInvoiceBuffer(data: InvoiceData, settings: Invoice
          .text('BILL TO', M, curY, { width: LEFT_W });
       doc.font('Helvetica-Bold').fontSize(11).fillColor('#0f172a')
          .text(data.customerName, M, curY + 11, { width: LEFT_W });
+      
+      let billToY = curY + 26;
+      doc.font('Helvetica').fontSize(9).fillColor('#64748b');
+      splitLines(data.customerAddress).forEach(line => {
+        doc.text(line.trim(), M, billToY, { width: LEFT_W });
+        billToY = doc.y;
+      });
 
       const dateRows: [string, string][] = [
         ['Invoice Date', data.date],
@@ -142,7 +150,7 @@ export async function generateInvoiceBuffer(data: InvoiceData, settings: Invoice
         dY += 16;
       });
 
-      curY = Math.max(curY + 40, dY) + 14;
+      curY = Math.max(billToY + 10, dY) + 14;
 
       // ── TABLE ──────────────────────────────────────────────────────────────
       const COL = {
@@ -206,6 +214,8 @@ export async function generateInvoiceBuffer(data: InvoiceData, settings: Invoice
         totRow('Shipping', 'Free — Local Pickup', '#059669');
       } else if (data.shipping > 0) {
         totRow('Shipping', `+ $${data.shipping.toFixed(2)}`);
+      } else if (data.subtotal > 40) {
+        totRow('Shipping', 'Free (Saved $8.99)', '#059669');
       }
 
       curY += 4;

@@ -120,6 +120,7 @@ export async function POST(req: Request) {
         orderId,
         date: new Date().toLocaleDateString("en-AU"),
         customerName: name,
+        customerAddress: address,
         productType,
         packageDetails,
         subtotal: subtotalNum,
