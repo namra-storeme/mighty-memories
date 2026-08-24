@@ -3,6 +3,7 @@ import { redirect } from "next/navigation";
 import Link from "next/link";
 import { LayoutDashboard, Settings, Mail, Image as ImageIcon, ShoppingBag, LogOut, Star } from "lucide-react";
 import { login } from "./actions";
+import { SessionManager } from "./SessionManager";
 
 export default async function AdminLayout({ children }: { children: React.ReactNode }) {
   const cookieStore = await cookies();
@@ -64,6 +65,7 @@ export default async function AdminLayout({ children }: { children: React.ReactN
 
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col md:flex-row">
+      <SessionManager />
       {/* Sidebar */}
       <aside className="w-full md:w-64 bg-white border-r border-gray-200 flex flex-col shrink-0">
         <div className="p-6 border-b border-gray-100 flex justify-center items-center">

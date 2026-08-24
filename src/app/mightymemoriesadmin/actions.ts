@@ -19,10 +19,9 @@ export async function login(formData: FormData) {
 
   if (password === expectedPassword && email.trim().toLowerCase() === expectedEmail.trim().toLowerCase()) {
     (await cookies()).set("adminAuth", "true", {
-      secure: false,
-      httpOnly: true,
+      secure: process.env.NODE_ENV === "production",
+      httpOnly: false,
       path: "/",
-      maxAge: 60 * 60 * 24 * 7,
     });
     redirect("/mightymemoriesadmin");
   } else {
@@ -31,7 +30,7 @@ export async function login(formData: FormData) {
 }
 
 export async function logout() {
-  (await cookies()).delete("admin_token");
+  (await cookies()).delete("adminAuth");
   redirect("/mightymemoriesadmin");
 }
 
