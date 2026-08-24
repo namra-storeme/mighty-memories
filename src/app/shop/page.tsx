@@ -3,6 +3,7 @@
 import { useState, useRef } from "react";
 import { UploadCloud, Loader2, X, Plus, Minus, Truck, MapPin } from "lucide-react";
 import { useRouter } from "next/navigation";
+import imageCompression from "browser-image-compression";
 
 type ProductType = "Custom Photo Magnets" | "Single Picture Magnets";
 
@@ -63,14 +64,34 @@ export default function ShopPage() {
   }
 
   // ── Photo upload ───────────────────────────────────────────────────────────
-  function handleFiles(incoming: FileList | null) {
+  async function handleFiles(incoming: FileList | null) {
     if (!incoming) return;
+    
+    // Convert to array
     const files = Array.from(incoming);
+    
+    // Compress files before adding them to state
+    const compressedFiles = await Promise.all(
+      files.map(async (file) => {
+        try {
+          // Compress to max 800KB, 1920px max dimension
+          return await imageCompression(file, {
+            maxSizeMB: 0.8,
+            maxWidthOrHeight: 1920,
+            useWebWorker: true
+          });
+        } catch (e) {
+          console.error("Compression failed for", file.name, e);
+          return file; // fallback to original if compression fails
+        }
+      })
+    );
+
     if (productType === "Single Picture Magnets") {
-      setPhotos([files[0]]);
+      setPhotos([compressedFiles[0] as File]);
     } else {
       setPhotos((prev) => {
-        const combined = [...prev, ...files];
+        const combined = [...prev, ...compressedFiles as File[]];
         return combined.slice(0, quantity);
       });
     }
@@ -118,8 +139,20 @@ export default function ShopPage() {
 
     try {
       const res = await fetch("/api/order/submit", { method: "POST", body: formData });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error || "Failed to process order.");
+      
+      let data;
+      const contentType = res.headers.get("content-type");
+      if (contentType && contentType.includes("application/json")) {
+        data = await res.json();
+      } else {
+        // Handle non-JSON responses (e.g. 413 Payload Too Large from Vercel)
+        if (res.status === 413) {
+          throw new Error("The uploaded photos are still too large for the server. Please try using fewer or smaller images.");
+        }
+        throw new Error("Received an unexpected response from the server. Please try again.");
+      }
+
+      if (!res.ok) throw new Error(data?.error || "Failed to process order.");
       router.push("/success");
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : "An error occurred");
