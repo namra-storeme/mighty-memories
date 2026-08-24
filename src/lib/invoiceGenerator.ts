@@ -7,6 +7,8 @@ interface InvoiceData {
   productType: string;
   packageDetails: string;
   subtotal: number;
+  shipping: number;
+  localPickup: boolean;
   tax: number;
   total: number;
 }
@@ -26,125 +28,190 @@ interface InvoiceSettings {
 export async function generateInvoiceBuffer(data: InvoiceData, settings: InvoiceSettings): Promise<Buffer> {
   return new Promise(async (resolve, reject) => {
     try {
-      const doc = new PDFDocument({ margin: 40, size: 'A4' });
+      const PAGE_W = 595.28; // A4 width in points
+      const MARGIN = 45;
+      const CONTENT_W = PAGE_W - MARGIN * 2;
+      const RIGHT_COL_X = 350;
+      const RIGHT_COL_W = PAGE_W - MARGIN - RIGHT_COL_X;
+
+      const doc = new PDFDocument({ margin: MARGIN, size: 'A4', autoFirstPage: true });
       const buffers: Buffer[] = [];
       doc.on('data', buffers.push.bind(buffers));
       doc.on('end', () => resolve(Buffer.concat(buffers)));
       doc.on('error', reject);
 
-      // We will skip loading external image logos in pdfkit if it's a URL because
-      // pdfkit only natively supports Buffer/ArrayBuffer or file paths.
-      // We can fetch the logo if provided.
+      // Fetch logo
       let logoBuffer: Buffer | null = null;
       if (settings.logoUrl && settings.logoUrl.startsWith('http')) {
         try {
           const res = await fetch(settings.logoUrl);
-          if (res.ok) {
-            logoBuffer = Buffer.from(await res.arrayBuffer());
-          }
-        } catch (e) {
-          console.warn("Could not fetch logo for PDF:", e);
+          if (res.ok) logoBuffer = Buffer.from(await res.arrayBuffer());
+        } catch {
+          // ignore logo fetch failure
         }
       }
 
-      const topY = 40;
-      
-      // Header: Logo and Business Details
+      // ── TOP RIGHT: INVOICE TITLE ──────────────────────────────────────
+      doc.font('Helvetica-Bold').fontSize(26).fillColor('#111827')
+         .text('INVOICE', RIGHT_COL_X, MARGIN, { width: RIGHT_COL_W, align: 'right' });
+
+      doc.font('Helvetica').fontSize(10).fillColor('#6b7280')
+         .text(`# ${data.orderId}`, RIGHT_COL_X, MARGIN + 34, { width: RIGHT_COL_W, align: 'right' });
+
+      // Balance Due box (top right)
+      const balBoxY = MARGIN + 58;
+      doc.rect(RIGHT_COL_X, balBoxY, RIGHT_COL_W, 38).fill('#f9fafb');
+      doc.font('Helvetica').fontSize(8).fillColor('#6b7280')
+         .text('BALANCE DUE', RIGHT_COL_X + 8, balBoxY + 6, { width: RIGHT_COL_W - 16, align: 'right' });
+      doc.font('Helvetica-Bold').fontSize(15).fillColor('#111827')
+         .text(`$${data.total.toFixed(2)}`, RIGHT_COL_X + 8, balBoxY + 18, { width: RIGHT_COL_W - 16, align: 'right' });
+
+      // ── TOP LEFT: LOGO + BUSINESS DETAILS ────────────────────────────
+      let leftY = MARGIN;
       if (logoBuffer) {
         try {
-          doc.image(logoBuffer, 40, topY, { width: 80, height: 80 });
-          doc.y = topY + 90;
-        } catch (e) {
-          // Fallback if image format not supported by pdfkit (e.g. webp)
-          doc.y = topY;
-        }
-      } else {
-        doc.y = topY;
+          // Use `fit` so the logo keeps its aspect ratio
+          doc.image(logoBuffer, MARGIN, leftY, { fit: [90, 90] });
+          leftY += 100;
+        } catch { /* skip broken image */ }
       }
 
-      doc.font('Helvetica-Bold').fontSize(14).text(settings.businessName || 'Business Name');
-      doc.font('Helvetica').fontSize(10).fillColor('#4b5563');
-      settings.address.split('\\n').forEach(line => doc.text(line));
-      if (settings.abn) doc.moveDown(0.2).text(settings.abn);
-      if (settings.email) doc.text(settings.email);
+      doc.font('Helvetica-Bold').fontSize(13).fillColor('#111827')
+         .text(settings.businessName || 'Business Name', MARGIN, leftY, { width: 280 });
+      leftY = doc.y + 4;
 
-      // Header: INVOICE and Balance
-      doc.font('Helvetica-Bold').fontSize(24).fillColor('#111827').text('INVOICE', 350, topY, { align: 'right' });
-      doc.font('Helvetica-Bold').fontSize(10).fillColor('#6b7280').text(`# ${data.orderId}`, 350, topY + 28, { align: 'right' });
-      
-      doc.font('Helvetica-Bold').fontSize(9).fillColor('#6b7280').text('BALANCE DUE', 350, topY + 60, { align: 'right' });
-      doc.font('Helvetica-Bold').fontSize(16).fillColor('#111827').text(`$${data.total.toFixed(2)}`, 350, topY + 72, { align: 'right' });
-
-      // Bill To & Dates
-      const midY = doc.y + 30;
-      
-      doc.font('Helvetica-Bold').fontSize(10).fillColor('#6b7280').text('BILL TO', 40, midY);
-      doc.font('Helvetica-Bold').fontSize(12).fillColor('#111827').text(data.customerName, 40, midY + 14);
-
-      doc.font('Helvetica-Bold').fontSize(10).fillColor('#6b7280').text('Invoice Date:', 350, midY);
-      doc.font('Helvetica-Bold').fontSize(10).fillColor('#111827').text(data.date, 450, midY, { align: 'right' });
-      
-      doc.font('Helvetica-Bold').fontSize(10).fillColor('#6b7280').text('Terms:', 350, midY + 18);
-      doc.font('Helvetica-Bold').fontSize(10).fillColor('#111827').text('Due on Receipt', 450, midY + 18, { align: 'right' });
-
-      doc.font('Helvetica-Bold').fontSize(10).fillColor('#6b7280').text('Due Date:', 350, midY + 36);
-      doc.font('Helvetica-Bold').fontSize(10).fillColor('#111827').text(data.date, 450, midY + 36, { align: 'right' });
-
-      // Table Header
-      const tableY = midY + 80;
-      doc.rect(40, tableY, 515, 25).fill('#f3f4f6');
-      doc.font('Helvetica-Bold').fontSize(9).fillColor('#374151');
-      doc.text('#', 50, tableY + 8);
-      doc.text('ITEM & DESCRIPTION', 80, tableY + 8);
-      doc.text('QTY', 360, tableY + 8, { width: 30, align: 'right' });
-      doc.text('RATE', 410, tableY + 8, { width: 60, align: 'right' });
-      doc.text('AMOUNT', 480, tableY + 8, { width: 60, align: 'right' });
-
-      // Table Row
-      const rowY = tableY + 35;
-      doc.font('Helvetica').fontSize(10).fillColor('#111827');
-      doc.text('1', 50, rowY);
-      doc.font('Helvetica-Bold').text(data.productType, 80, rowY);
-      doc.font('Helvetica').fontSize(9).fillColor('#6b7280').text(data.packageDetails, 80, rowY + 14);
-      
-      doc.font('Helvetica').fontSize(10).fillColor('#111827');
-      doc.text('1.00', 360, rowY, { width: 30, align: 'right' });
-      doc.text(`$${data.subtotal.toFixed(2)}`, 410, rowY, { width: 60, align: 'right' });
-      doc.text(`$${data.subtotal.toFixed(2)}`, 480, rowY, { width: 60, align: 'right' });
-      
-      doc.moveTo(40, rowY + 40).lineTo(555, rowY + 40).strokeColor('#e5e7eb').stroke();
-
-      // Totals
-      const totalY = rowY + 60;
-      doc.font('Helvetica-Bold').fontSize(10).fillColor('#6b7280').text('Sub Total', 350, totalY);
-      doc.font('Helvetica-Bold').fillColor('#111827').text(`$${data.subtotal.toFixed(2)}`, 480, totalY, { width: 60, align: 'right' });
-
-      doc.font('Helvetica-Bold').fillColor('#6b7280').text(settings.taxLabel, 350, totalY + 20);
-      if (data.tax === 0) {
-        doc.font('Helvetica-Bold').fillColor('#059669').text('Included', 480, totalY + 20, { width: 60, align: 'right' });
-      } else {
-        doc.font('Helvetica-Bold').fillColor('#111827').text(`$${data.tax.toFixed(2)}`, 480, totalY + 20, { width: 60, align: 'right' });
-      }
-
-      doc.rect(340, totalY + 45, 215, 30).fill('#f9fafb');
-      doc.font('Helvetica-Bold').fontSize(11).fillColor('#111827');
-      doc.text('Balance Due', 350, totalY + 55);
-      doc.text(`$${data.total.toFixed(2)}`, 480, totalY + 55, { width: 60, align: 'right' });
-
-      // Notes
-      doc.font('Helvetica-Bold').fontSize(10).fillColor('#111827').text('NOTES', 40, totalY + 100);
-      doc.rect(40, totalY + 115, 300, 100).fill('#f9fafb');
       doc.font('Helvetica').fontSize(9).fillColor('#6b7280');
-      let noteY = totalY + 125;
-      settings.notes.split('\\n').forEach(line => {
-        doc.text(line || ' ', 50, noteY);
-        noteY += 12;
+      // Fix newlines: Firebase stores real \n chars, so just split on \n (single char)
+      const addressLines = (settings.address || '').split('\n');
+      addressLines.forEach(line => {
+        doc.text(line, MARGIN, leftY, { width: 280 });
+        leftY = doc.y;
       });
 
-      // Footer
-      doc.moveTo(40, 780).lineTo(555, 780).strokeColor('#e5e7eb').stroke();
-      doc.font('Helvetica-Bold').fontSize(8).fillColor('#9ca3af').text(settings.footerText, 40, 795);
-      doc.text('PAGE 1 OF 1', 500, 795, { align: 'right' });
+      if (settings.abn) {
+        doc.text(settings.abn, MARGIN, leftY + 2, { width: 280 });
+        leftY = doc.y;
+      }
+      if (settings.email) {
+        doc.text(settings.email, MARGIN, leftY + 2, { width: 280 });
+        leftY = doc.y;
+      }
+
+      // ── DIVIDER ───────────────────────────────────────────────────────
+      const dividerY = Math.max(leftY, balBoxY + 38) + 20;
+      doc.moveTo(MARGIN, dividerY).lineTo(PAGE_W - MARGIN, dividerY)
+         .strokeColor('#e5e7eb').lineWidth(1).stroke();
+
+      // ── BILL TO + INVOICE DATES ───────────────────────────────────────
+      const sectionY = dividerY + 18;
+
+      doc.font('Helvetica').fontSize(8).fillColor('#9ca3af')
+         .text('BILL TO', MARGIN, sectionY);
+      doc.font('Helvetica-Bold').fontSize(11).fillColor('#111827')
+         .text(data.customerName, MARGIN, sectionY + 12, { width: 260 });
+
+      // Dates on the right
+      const dateRows = [
+        ['Invoice Date', data.date],
+        ['Terms', 'Due on Receipt'],
+        ['Due Date', data.date],
+      ];
+      let dateY = sectionY;
+      dateRows.forEach(([label, value]) => {
+        doc.font('Helvetica').fontSize(9).fillColor('#6b7280')
+           .text(label, RIGHT_COL_X, dateY, { width: 90 });
+        doc.font('Helvetica-Bold').fontSize(9).fillColor('#111827')
+           .text(value, RIGHT_COL_X + 95, dateY, { width: RIGHT_COL_W - 95, align: 'right' });
+        dateY += 18;
+      });
+
+      // ── TABLE ─────────────────────────────────────────────────────────
+      const tableY = sectionY + 60;
+      const COL = { hash: MARGIN, desc: MARGIN + 22, qty: 370, rate: 420, amt: 480 };
+
+      // Table header
+      doc.rect(MARGIN, tableY, CONTENT_W, 22).fill('#1f2937');
+      doc.font('Helvetica-Bold').fontSize(8).fillColor('#ffffff');
+      doc.text('#', COL.hash, tableY + 7, { width: 18 });
+      doc.text('ITEM & DESCRIPTION', COL.desc, tableY + 7, { width: 200 });
+      doc.text('QTY', COL.qty, tableY + 7, { width: 44, align: 'right' });
+      doc.text('RATE', COL.rate, tableY + 7, { width: 44, align: 'right' });
+      doc.text('AMOUNT', COL.amt, tableY + 7, { width: 60, align: 'right' });
+
+      // Table row
+      const rowY = tableY + 32;
+      doc.font('Helvetica-Bold').fontSize(9).fillColor('#111827')
+         .text('1', COL.hash, rowY, { width: 18 });
+      doc.font('Helvetica-Bold').fontSize(10).fillColor('#111827')
+         .text(data.productType, COL.desc, rowY, { width: 210 });
+      doc.font('Helvetica').fontSize(8).fillColor('#6b7280')
+         .text(data.packageDetails, COL.desc, rowY + 14, { width: 210 });
+
+      // Keep numbers at rowY (not affected by left column flow)
+      doc.font('Helvetica').fontSize(9).fillColor('#111827')
+         .text('1.00', COL.qty, rowY, { width: 44, align: 'right' });
+      doc.text(`$${data.subtotal.toFixed(2)}`, COL.rate, rowY, { width: 44, align: 'right' });
+      doc.font('Helvetica-Bold').text(`$${data.subtotal.toFixed(2)}`, COL.amt, rowY, { width: 60, align: 'right' });
+
+      const afterRowY = rowY + 42;
+      doc.moveTo(MARGIN, afterRowY).lineTo(PAGE_W - MARGIN, afterRowY)
+         .strokeColor('#e5e7eb').lineWidth(0.5).stroke();
+
+      // ── TOTALS ────────────────────────────────────────────────────────
+      const totX = 340;
+      const totW = PAGE_W - MARGIN - totX;
+      let totY = afterRowY + 14;
+
+      const totRow = (label: string, value: string, valueColor = '#111827') => {
+        doc.font('Helvetica').fontSize(9).fillColor('#6b7280').text(label, totX, totY, { width: 100 });
+        doc.font('Helvetica').fontSize(9).fillColor(valueColor).text(value, totX + 105, totY, { width: totW - 105, align: 'right' });
+        totY += 18;
+      };
+
+      totRow('Sub Total', `$${data.subtotal.toFixed(2)}`);
+      totRow(settings.taxLabel || 'Tax', data.tax === 0 ? 'Included' : `$${data.tax.toFixed(2)}`, data.tax === 0 ? '#059669' : '#111827');
+
+      // Shipping row
+      if (data.localPickup) {
+        totRow('Shipping', 'Free — Local Pickup', '#059669');
+      } else if (data.shipping > 0) {
+        totRow('Shipping', `+ $${data.shipping.toFixed(2)}`);
+      }
+      // If over $40 free shipping: no shipping row at all
+
+      // Balance Due box
+      totY += 4;
+      doc.rect(totX, totY, totW, 30).fill('#1f2937');
+      doc.font('Helvetica-Bold').fontSize(9).fillColor('#ffffff')
+         .text('BALANCE DUE', totX + 8, totY + 10, { width: 90 });
+      doc.font('Helvetica-Bold').fontSize(11).fillColor('#ffffff')
+         .text(`$${data.total.toFixed(2)}`, totX + 8, totY + 9, { width: totW - 16, align: 'right' });
+
+      // ── NOTES ────────────────────────────────────────────────────────
+      const notesY = totY + 50;
+      doc.font('Helvetica-Bold').fontSize(9).fillColor('#374151')
+         .text('NOTES', MARGIN, notesY);
+
+      const noteBoxY = notesY + 14;
+      // Fix: Firebase saves real \n chars. Split on the actual newline character.
+      const noteLines = (settings.notes || '').split('\n');
+      const noteBoxH = Math.max(60, noteLines.length * 12 + 20);
+      doc.rect(MARGIN, noteBoxY, 300, noteBoxH).fill('#f9fafb');
+
+      doc.font('Helvetica').fontSize(8.5).fillColor('#6b7280');
+      let nY = noteBoxY + 10;
+      noteLines.forEach(line => {
+        doc.text(line.trim() === '' ? ' ' : line, MARGIN + 10, nY, { width: 280 });
+        nY += 12;
+      });
+
+      // ── FOOTER ───────────────────────────────────────────────────────
+      const footerY = 785;
+      doc.moveTo(MARGIN, footerY).lineTo(PAGE_W - MARGIN, footerY)
+         .strokeColor('#e5e7eb').lineWidth(0.5).stroke();
+      doc.font('Helvetica').fontSize(8).fillColor('#9ca3af')
+         .text(settings.footerText || 'Thank you for your business!', MARGIN, footerY + 8, { width: CONTENT_W / 2 });
+      doc.text('Page 1 of 1', PAGE_W - MARGIN - 80, footerY + 8, { width: 80, align: 'right' });
 
       doc.end();
     } catch (err) {

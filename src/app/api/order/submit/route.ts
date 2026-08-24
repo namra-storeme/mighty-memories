@@ -123,7 +123,9 @@ export async function POST(req: Request) {
         productType,
         packageDetails,
         subtotal: subtotalNum,
-        tax: 0, // Set to 0 to trigger 'Included' text in the PDF generator
+        shipping: shippingNum,
+        localPickup,
+        tax: 0, // Tax included in price, shown as 'Included' on the invoice
         total: totalAmount
       };
       

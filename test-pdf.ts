@@ -10,8 +10,10 @@ async function main() {
       productType: "Magnets",
       packageDetails: "25pcs",
       subtotal: 15,
+      shipping: 8.99,
+      localPickup: false,
       tax: 0,
-      total: 15
+      total: 23.99
     };
     
     const settings = {
