@@ -21,16 +21,22 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "Missing required contact details" }, { status: 400 });
     }
 
-    // Upload photos to GCS
-    const photos: { url: string }[] = [];
+    // Upload photos to GCS in parallel
+    const photoUploadPromises: Promise<{ url: string }>[] = [];
     for (const [key, value] of formData.entries()) {
       if (key.startsWith("photo-") && value instanceof File && value.size > 0) {
-        const buffer = Buffer.from(await value.arrayBuffer());
-        const filename = `order-${Date.now()}-${Math.random().toString(36).substring(7)}`;
-        const publicUrl = await uploadToGCS(buffer, "mighty-memories/orders", filename, value.type);
-        photos.push({ url: publicUrl });
+        const uploadTask = async () => {
+          const buffer = Buffer.from(await value.arrayBuffer());
+          const filename = `order-${Date.now()}-${Math.random().toString(36).substring(7)}`;
+          const publicUrl = await uploadToGCS(buffer, "mighty-memories/orders", filename, value.type);
+          return { url: publicUrl };
+        };
+        photoUploadPromises.push(uploadTask());
       }
     }
+    
+    const photos = await Promise.all(photoUploadPromises);
+
 
     // Generate a clean readable Order ID
     const randomChars = Math.random().toString(36).substring(2, 8).toUpperCase();
