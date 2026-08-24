@@ -28,7 +28,7 @@ export default function RootLayout({
           <main className="flex-grow">
             {children}
           </main>
-          <footer className="bg-white border-t border-gray-100 py-12 mt-16">
+          <footer className="bg-gray-100 border-t border-gray-200 py-12 mt-16">
             <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
               <div className="flex flex-wrap justify-center items-center gap-4 mb-10">
                 <a href="https://www.instagram.com/m2mightymemories.au?igsi=MTU1ODNiNmhlcG9wbQ==" target="_blank" rel="noopener noreferrer" className="bg-gradient-to-tr from-[#f09433] via-[#dc2743] to-[#bc1888] text-white px-5 py-2.5 rounded-full text-sm font-bold flex items-center gap-2 hover:scale-105 transition shadow-sm">
@@ -50,8 +50,8 @@ export default function RootLayout({
               </div>
 
               {/* Bottom: Copyright */}
-              <div className="flex flex-col items-center gap-4 text-[10px] text-gray-400">
-                <p>© {new Date().getFullYear()}, m2 mighty memories Powered by Next.js · <a href="#" className="hover:underline">Privacy policy</a></p>
+              <div className="flex flex-col items-center gap-4 text-[11px] text-gray-500 font-medium tracking-wide">
+                <p>© {new Date().getFullYear()} m2 mighty memories</p>
               </div>
             </div>
           </footer>
