@@ -15,6 +15,7 @@ export async function POST(req: Request) {
     const email = formData.get("email") as string;
     const phone = formData.get("phone") as string;
     const address = formData.get("address") as string;
+    const localPickup = (formData.get("localPickup") as string) === "yes";
 
     if (!name || !email || !phone || !address || !productType) {
       return NextResponse.json({ error: "Missing required contact details" }, { status: 400 });
@@ -50,6 +51,7 @@ export async function POST(req: Request) {
       comments,
       productType,
       packageDetails,
+      localPickup,
       status: "New",
       photos,
       createdAt: new Date().toISOString(),
@@ -102,6 +104,7 @@ export async function POST(req: Request) {
             <div style="background:linear-gradient(135deg,#2563eb,#7c3aed);color:white;padding:28px 32px;">
               <h1 style="margin:0;font-size:24px;">🎉 New Order Received!</h1>
               <p style="margin:8px 0 0;opacity:0.85;font-size:15px;">Order ID: <strong>${orderId}</strong> &nbsp;·&nbsp; Total <strong>$${totalAmount.toFixed(2)} AUD</strong></p>
+              ${localPickup ? `<p style="margin:8px 0 0;background:rgba(255,255,255,0.2);display:inline-block;padding:4px 12px;border-radius:999px;font-size:13px;font-weight:700;">📍 LOCAL PICKUP — Toongabbie, Sydney</p>` : ""}
             </div>
             <div style="padding:28px 32px;background:#fff;">
               <p style="color:#111827;font-size:15px;line-height:1.5;margin-bottom:24px;">${adminBody.replace(/\n/g, '<br>')}</p>

@@ -1,14 +1,14 @@
-"use client";
+﻿"use client";
 
 import { useState, useRef } from "react";
-import { UploadCloud, Loader2, X, Plus, Minus, Truck } from "lucide-react";
+import { UploadCloud, Loader2, X, Plus, Minus, Truck, MapPin } from "lucide-react";
 import { useRouter } from "next/navigation";
 
 type ProductType = "Custom Photo Magnets" | "Single Picture Magnets";
 
 // ── Pricing helpers ──────────────────────────────────────────────────────────
 const SHIPPING = 8.99;
-const FREE_SHIPPING_QTY = 40;
+const FREE_SHIPPING_THRESHOLD = 40; // free shipping when subtotal >= $40
 
 function getUnitPrice(product: ProductType, qty: number): number {
   if (product === "Custom Photo Magnets") {
@@ -21,12 +21,9 @@ function getSubtotal(product: ProductType, qty: number): number {
   return getUnitPrice(product, qty) * qty;
 }
 
-function getShipping(qty: number): number {
-  return qty >= FREE_SHIPPING_QTY ? 0 : SHIPPING;
-}
-
-function getTotal(product: ProductType, qty: number): number {
-  return getSubtotal(product, qty) + getShipping(qty);
+function getShippingCost(subtotal: number, localPickup: boolean): number {
+  if (localPickup) return 0;
+  return subtotal >= FREE_SHIPPING_THRESHOLD ? 0 : SHIPPING;
 }
 
 const MIN_QTY: Record<ProductType, number> = {
@@ -41,6 +38,7 @@ export default function ShopPage() {
   const [quantity, setQuantity] = useState<number>(MIN_QTY["Custom Photo Magnets"]);
   const [photos, setPhotos] = useState<File[]>([]);
   const [comments, setComments] = useState("");
+  const [localPickup, setLocalPickup] = useState(false);
   const [step, setStep] = useState<1 | 2>(1);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState("");
@@ -108,12 +106,13 @@ export default function ShopPage() {
     formData.set("productType", productType);
     formData.set(
       "packageDetails",
-      `${quantity} magnets @ $${getUnitPrice(productType, quantity).toFixed(2)} each`
+      `${quantity} magnets @ $${unitPrice.toFixed(2)} each${localPickup ? " — Local Pickup (Toongabbie)" : ""}`
     );
     formData.set("quantity", quantity.toString());
     formData.set("subtotalAmount", subtotal.toFixed(2));
-    formData.set("shippingAmount", shipping.toFixed(2));
+    formData.set("shippingAmount", shippingCost.toFixed(2));
     formData.set("totalAmount", total.toFixed(2));
+    formData.set("localPickup", localPickup ? "yes" : "no");
 
     photos.forEach((file, i) => formData.append(`photo-${i}`, file));
 
@@ -128,11 +127,12 @@ export default function ShopPage() {
     }
   }
 
+  // ── Derived values ─────────────────────────────────────────────────────────
   const unitPrice = getUnitPrice(productType, quantity);
   const subtotal = getSubtotal(productType, quantity);
-  const shipping = getShipping(quantity);
-  const total = getTotal(productType, quantity);
-  const freeShipping = quantity >= FREE_SHIPPING_QTY;
+  const qualifiesFreeShipping = subtotal >= FREE_SHIPPING_THRESHOLD;
+  const shippingCost = getShippingCost(subtotal, localPickup);
+  const total = subtotal + shippingCost;
   const isSingle = productType === "Single Picture Magnets";
 
   return (
@@ -161,9 +161,9 @@ export default function ShopPage() {
             {/* PRODUCT DETAILS CARD */}
             <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
               <div className="w-full aspect-[4/3] bg-gray-100">
-                <img 
-                  src={productType === "Custom Photo Magnets" ? "/photo_magnets.jpg" : "/single_bulk_magnets.jpg"} 
-                  alt={productType} 
+                <img
+                  src={productType === "Custom Photo Magnets" ? "/photo_magnets.jpg" : "/single_bulk_magnets.jpg"}
+                  alt={productType}
                   className="w-full h-full object-cover"
                 />
               </div>
@@ -173,7 +173,7 @@ export default function ShopPage() {
                   ${productType === "Custom Photo Magnets" ? "5.00" : "3.50"} each
                 </p>
                 <p className="text-[13px] text-gray-500 leading-relaxed mb-4">
-                  {productType === "Custom Photo Magnets" 
+                  {productType === "Custom Photo Magnets"
                     ? "Custom personalized magnets made with your favorite photos, quotes, names, QR codes, logos, and more."
                     : "Perfect for events, gifts, and giveaways. Upload one photo and we'll print it on all your magnets."}
                 </p>
@@ -186,7 +186,7 @@ export default function ShopPage() {
                     <div>Per Magnet</div>
                     <div>You Save</div>
                   </div>
-                  
+
                   {productType === "Custom Photo Magnets" ? (
                     <div className="space-y-2 text-gray-600">
                       <div className="grid grid-cols-4">
@@ -203,9 +203,9 @@ export default function ShopPage() {
                       </div>
                       <div className="grid grid-cols-4">
                         <div>Bulk Orders</div>
-                        <div>40+ magnets</div>
+                        <div>$40+ order</div>
                         <div>$4.00</div>
-                        <div className="text-[#C49B76] font-bold">Free Shipping</div>
+                        <div className="text-[#C49B76] font-bold">Free Ship</div>
                       </div>
                     </div>
                   ) : (
@@ -218,9 +218,9 @@ export default function ShopPage() {
                       </div>
                       <div className="grid grid-cols-4">
                         <div>Bulk Orders</div>
-                        <div>40+ magnets</div>
+                        <div>$40+ order</div>
                         <div>$3.50</div>
-                        <div className="text-[#C49B76] font-bold">Free Shipping</div>
+                        <div className="text-[#C49B76] font-bold">Free Ship</div>
                       </div>
                     </div>
                   )}
@@ -232,13 +232,13 @@ export default function ShopPage() {
             <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-5">
               <div className="flex items-center gap-3 mb-4">
                 <h2 className="text-[12px] font-bold text-[#111827] uppercase tracking-wider">1. Quantity</h2>
-                {freeShipping ? (
-                  <span className="text-[10px] font-bold text-blue-600 flex items-center gap-1">
-                    <Truck className="w-3 h-3" /> Free shipping on 40+ pieces!
+                {qualifiesFreeShipping ? (
+                  <span className="text-[10px] font-bold text-green-600 flex items-center gap-1">
+                    <Truck className="w-3 h-3" /> Free shipping unlocked!
                   </span>
                 ) : (
                   <span className="text-[10px] font-bold text-gray-400 flex items-center gap-1">
-                    <Truck className="w-3 h-3" /> Free shipping on 40+ pieces!
+                    <Truck className="w-3 h-3" /> Free shipping on orders $40+
                   </span>
                 )}
               </div>
@@ -263,6 +263,7 @@ export default function ShopPage() {
                 <span className="text-[12px] font-medium text-gray-400 ml-2">${unitPrice.toFixed(2)} each</span>
               </div>
 
+              {/* Price Breakdown */}
               <div className="bg-[#fafafa] rounded-lg p-3.5 text-[12px] space-y-2 border border-gray-100">
                 <div className="flex justify-between text-gray-500">
                   <span>{quantity} × ${unitPrice.toFixed(2)}</span>
@@ -270,12 +271,40 @@ export default function ShopPage() {
                 </div>
                 <div className="flex justify-between text-gray-500">
                   <span>Shipping</span>
-                  {freeShipping ? <span>$0.00</span> : <span>${SHIPPING.toFixed(2)}</span>}
+                  {shippingCost === 0
+                    ? <span className="text-green-600 font-semibold">{localPickup ? "Free (Local Pickup)" : "FREE 🎉"}</span>
+                    : <span>${SHIPPING.toFixed(2)}</span>
+                  }
                 </div>
                 <div className="flex justify-between font-bold text-[#111827] text-[14px] border-t border-gray-200 pt-2 mt-1">
                   <span>Total</span>
                   <span>${total.toFixed(2)} AUD</span>
                 </div>
+              </div>
+
+              {/* LOCAL PICKUP OPTION */}
+              <div className="mt-3 rounded-lg border border-gray-200 overflow-hidden">
+                <label
+                  className={`flex items-start gap-3 p-3.5 cursor-pointer transition ${localPickup ? "bg-green-50 border-green-200" : "bg-white hover:bg-gray-50"}`}
+                >
+                  <input
+                    type="checkbox"
+                    checked={localPickup}
+                    onChange={(e) => setLocalPickup(e.target.checked)}
+                    className="mt-0.5 w-4 h-4 accent-black rounded shrink-0"
+                  />
+                  <div>
+                    <p className="text-[12px] font-bold text-[#111827] flex items-center gap-1.5">
+                      <MapPin className="w-3.5 h-3.5 text-red-500 shrink-0" />
+                      Free Local Pickup — Toongabbie, Sydney
+                    </p>
+                    <p className="text-[11px] text-gray-500 mt-1 leading-relaxed">
+                      Based in Sydney? Save on shipping by picking up your order directly from Toongabbie, NSW.
+                      For privacy, our full address is not listed here — once your order is ready, we will email
+                      you the exact pickup address and coordinate a convenient time.
+                    </p>
+                  </div>
+                </label>
               </div>
             </div>
 
@@ -359,18 +388,30 @@ export default function ShopPage() {
         {/* ── STEP 2 ── */}
         {step === 2 && (
           <form onSubmit={handleSubmit} className="space-y-4">
-            <div className="bg-[#1c1c1c] text-white rounded-xl px-5 py-4 flex items-center justify-between shadow-sm">
-              <div>
-                <p className="text-[10px] opacity-60 uppercase tracking-wider mb-0.5">{productType}</p>
-                <p className="font-bold text-lg">${total.toFixed(2)} AUD</p>
+            {/* Order Summary Bar */}
+            <div className="bg-[#1c1c1c] text-white rounded-xl px-5 py-4 shadow-sm">
+              <div className="flex items-center justify-between mb-2">
+                <p className="text-[10px] opacity-60 uppercase tracking-wider">{productType}</p>
+                <button type="button" onClick={() => setStep(1)} className="text-[11px] font-semibold opacity-80 hover:opacity-100 underline underline-offset-2 transition">
+                  ← Edit order
+                </button>
               </div>
-              <button type="button" onClick={() => setStep(1)} className="text-[11px] font-semibold opacity-80 hover:opacity-100 underline underline-offset-2 transition">
-                ← Edit order
-              </button>
+              <div className="flex justify-between text-[12px] text-white/70 mt-1">
+                <span>Subtotal</span><span>${subtotal.toFixed(2)}</span>
+              </div>
+              <div className="flex justify-between text-[12px] text-white/70 mt-0.5">
+                <span>{localPickup ? "📍 Local Pickup (Toongabbie)" : "Shipping"}</span>
+                <span>{shippingCost === 0 ? "FREE" : `$${shippingCost.toFixed(2)}`}</span>
+              </div>
+              <div className="flex justify-between font-bold text-lg mt-2 border-t border-white/20 pt-2">
+                <span>Total</span><span>${total.toFixed(2)} AUD</span>
+              </div>
             </div>
 
             <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-5">
-              <h2 className="text-[12px] font-bold text-[#111827] mb-4 uppercase tracking-wider">Your Details</h2>
+              <h2 className="text-[12px] font-bold text-[#111827] mb-4 uppercase tracking-wider">
+                {localPickup ? "Your Contact Details" : "Your Shipping Details"}
+              </h2>
               <div className="space-y-3">
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   <div>
@@ -386,10 +427,23 @@ export default function ShopPage() {
                   <label className="block text-[10px] font-bold text-gray-500 uppercase tracking-wider mb-1">Phone Number *</label>
                   <input type="tel" name="phone" required className="w-full border border-gray-200 rounded-md px-3 py-2 text-[13px] focus:outline-none focus:border-black transition" />
                 </div>
-                <div>
-                  <label className="block text-[10px] font-bold text-gray-500 uppercase tracking-wider mb-1">Shipping Address *</label>
-                  <textarea name="address" required rows={2} className="w-full border border-gray-200 rounded-md px-3 py-2 text-[13px] focus:outline-none focus:border-black transition resize-none" placeholder="Street, Suburb, State, Postcode" />
-                </div>
+                {localPickup ? (
+                  <div className="bg-green-50 border border-green-200 rounded-lg p-3">
+                    <p className="text-[11px] text-green-700 font-semibold flex items-center gap-1.5">
+                      <MapPin className="w-3.5 h-3.5 shrink-0" />
+                      Local Pickup — Toongabbie, Sydney NSW
+                    </p>
+                    <p className="text-[11px] text-green-600 mt-1 leading-relaxed">
+                      We'll email you the exact address and arrange a convenient pickup time once your order is ready.
+                    </p>
+                    <input type="hidden" name="address" value="LOCAL PICKUP — Toongabbie, Sydney NSW" />
+                  </div>
+                ) : (
+                  <div>
+                    <label className="block text-[10px] font-bold text-gray-500 uppercase tracking-wider mb-1">Shipping Address *</label>
+                    <textarea name="address" required rows={2} className="w-full border border-gray-200 rounded-md px-3 py-2 text-[13px] focus:outline-none focus:border-black transition resize-none" placeholder="Street, Suburb, State, Postcode" />
+                  </div>
+                )}
                 <input type="hidden" name="comments" value={comments} />
               </div>
             </div>
