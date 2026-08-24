@@ -56,9 +56,15 @@ export default async function InvoiceSettingsPage() {
               <input type="text" name="email" defaultValue={invoice.email} className="w-full px-4 py-3 border border-gray-200 rounded-xl outline-none focus:ring-2 focus:ring-blue-500 bg-gray-50 transition" />
             </div>
             <div>
-              <label className="block text-sm font-semibold text-gray-700 mb-2">Logo Image URL</label>
-              <input type="text" name="logoUrl" defaultValue={invoice.logoUrl} placeholder="https://..." className="w-full px-4 py-3 border border-gray-200 rounded-xl outline-none focus:ring-2 focus:ring-blue-500 bg-gray-50 transition" />
-              <p className="text-xs text-gray-500 mt-1">Optional. Link to a hosted image (PNG/JPG).</p>
+              <label className="block text-sm font-semibold text-gray-700 mb-2">Invoice Logo (Upload Image)</label>
+              <div className="flex items-center gap-4">
+                {invoice.logoUrl && (
+                  <img src={invoice.logoUrl} alt="Logo" className="w-12 h-12 rounded-full object-cover border border-gray-200 shadow-sm" />
+                )}
+                <input type="file" name="logoFile" accept="image/png, image/jpeg, image/jpg" className="w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-xl file:border-0 file:text-sm file:font-bold file:bg-gray-100 file:text-gray-700 hover:file:bg-gray-200 transition cursor-pointer" />
+                <input type="hidden" name="existingLogoUrl" value={invoice.logoUrl || ""} />
+              </div>
+              <p className="text-xs text-gray-500 mt-2">Upload a PNG or JPG to display on the invoice.</p>
             </div>
           </div>
 

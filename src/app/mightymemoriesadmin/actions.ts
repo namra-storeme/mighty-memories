@@ -396,12 +396,23 @@ export async function deleteReview(reviewId: string) {
 export async function saveInvoiceSettings(formData: FormData) {
   try {
     const db = getDb();
+    
+    // Handle Logo Upload
+    const logoFile = formData.get("logoFile") as File | null;
+    let logoUrl = formData.get("existingLogoUrl") as string;
+    
+    if (logoFile && logoFile.size > 0) {
+      const buffer = Buffer.from(await logoFile.arrayBuffer());
+      const filename = `invoice-logo-${Date.now()}`;
+      logoUrl = await uploadToGCS(buffer, "mighty-memories/settings", filename, logoFile.type);
+    }
+
     const invoiceSettings = {
       businessName: formData.get("businessName") as string,
       address: formData.get("address") as string,
       abn: formData.get("abn") as string,
       email: formData.get("email") as string,
-      logoUrl: formData.get("logoUrl") as string,
+      logoUrl: logoUrl || "",
       taxLabel: formData.get("taxLabel") as string,
       taxRate: parseFloat(formData.get("taxRate") as string) || 0,
       notes: formData.get("notes") as string,
@@ -413,4 +424,5 @@ export async function saveInvoiceSettings(formData: FormData) {
     console.error("Save invoice settings error:", error);
   }
 }
+
 

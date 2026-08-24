@@ -123,7 +123,7 @@ export async function POST(req: Request) {
         productType,
         packageDetails,
         subtotal: subtotalNum,
-        tax: invoiceSettings.taxRate ? (subtotalNum * (invoiceSettings.taxRate / 100)) : 0, // Using settings tax rate
+        tax: 0, // Set to 0 to trigger 'Included' text in the PDF generator
         total: totalAmount
       };
       
