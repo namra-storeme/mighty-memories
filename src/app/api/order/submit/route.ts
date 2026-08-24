@@ -68,7 +68,7 @@ export async function POST(req: Request) {
     // Fetch admin settings for email
     const settingsSnap = await db.ref("settings/config").get();
     const settings = settingsSnap.val();
-    const adminEmail = settings?.adminEmail || process.env.SMTP_USER;
+    const adminEmail = settings?.email || process.env.SMTP_USER;
 
     // 3. Send Emails via SMTP
     if (process.env.SMTP_HOST && process.env.SMTP_USER && process.env.SMTP_PASS) {
