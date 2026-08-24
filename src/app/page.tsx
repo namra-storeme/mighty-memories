@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { Image as ImageIcon, Star } from "lucide-react";
+import { Image as ImageIcon, Star, Truck, Heart, ShieldCheck } from "lucide-react";
 import ReviewButton from "@/components/ReviewButton";
 import { getDb } from "@/lib/firebase";
 import PhotoSlider from "@/components/PhotoSlider";
@@ -59,31 +59,24 @@ export default async function Home() {
       </section>
 
       {/* Feature Banner */}
-      <section className="bg-[#fafafa] py-12 border-b border-gray-100">
-        <div className="max-w-7xl mx-auto px-4 flex flex-wrap items-center justify-center gap-x-10 gap-y-6 text-center">
-          <div>
-            <h3 className="font-bold text-gray-900 text-sm flex items-center justify-center gap-2">
-              🚚 Australia Wide Shipping
+      <section className="bg-white py-10 border-b border-gray-100">
+        <div className="max-w-5xl mx-auto px-4 grid grid-cols-1 md:grid-cols-3 divide-y md:divide-y-0 md:divide-x divide-gray-200 text-center">
+          <div className="py-4 md:py-0">
+            <h3 className="font-bold text-gray-800 text-sm flex items-center justify-center gap-2.5 tracking-wide">
+              <Truck className="w-5 h-5 text-gray-900" />
+              Australia Wide Shipping
             </h3>
           </div>
-          <div>
-            <h3 className="font-bold text-gray-900 text-sm flex items-center justify-center gap-2">
-              ♡ Made With Care
+          <div className="py-4 md:py-0">
+            <h3 className="font-bold text-gray-800 text-sm flex items-center justify-center gap-2.5 tracking-wide">
+              <Heart className="w-5 h-5 text-gray-900" />
+              Made With Care
             </h3>
           </div>
-          <div>
-            <h3 className="font-bold text-gray-900 text-sm flex items-center justify-center gap-2">
-              ✓ Premium Quality
-            </h3>
-          </div>
-          <div>
-            <h3 className="font-bold text-gray-900 text-sm flex items-center justify-center gap-2">
-              🎁 For Gift
-            </h3>
-          </div>
-          <div>
-            <h3 className="font-bold text-gray-900 text-sm flex items-center justify-center gap-2">
-              💼 For Business
+          <div className="py-4 md:py-0">
+            <h3 className="font-bold text-gray-800 text-sm flex items-center justify-center gap-2.5 tracking-wide">
+              <ShieldCheck className="w-5 h-5 text-gray-900" />
+              Premium Quality
             </h3>
           </div>
         </div>
