@@ -1,6 +1,6 @@
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
-import { ShoppingBag, Phone, Mail, MessageSquare, Calendar, Image as ImageIcon, User, Trash2 } from "lucide-react";
+import { ShoppingBag, Phone, Mail, MessageSquare, Calendar, Image as ImageIcon, User, Trash2, MapPin } from "lucide-react";
 import Link from "next/link";
 import { updateOrderStatus } from "../actions";
 import { getDb } from "@/lib/firebase";
@@ -112,7 +112,7 @@ export default async function OrdersPage(props: { searchParams: Promise<{ q?: st
                   </div>
 
                   {/* Order Body */}
-                  <div className="px-6 py-4 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                  <div className="px-6 py-4 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
                     <div className="flex items-start gap-2.5">
                       <Mail className="w-4 h-4 text-blue-500 mt-0.5 shrink-0" />
                       <div>
@@ -130,6 +130,13 @@ export default async function OrdersPage(props: { searchParams: Promise<{ q?: st
                       </div>
                     </div>
                     <div className="flex items-start gap-2.5">
+                      <MapPin className="w-4 h-4 text-red-500 mt-0.5 shrink-0" />
+                      <div>
+                        <p className="text-xs text-gray-400 font-medium">Address</p>
+                        <p className="text-sm text-gray-900 whitespace-pre-wrap">{order.address}</p>
+                      </div>
+                    </div>
+                    <div className="flex items-start gap-2.5">
                       <ShoppingBag className="w-4 h-4 text-purple-500 mt-0.5 shrink-0" />
                       <div>
                         <p className="text-xs text-gray-400 font-medium">Order Details</p>
@@ -140,7 +147,7 @@ export default async function OrdersPage(props: { searchParams: Promise<{ q?: st
                           {order.packageDetails || `${order.quantity} Stickers`}
                         </p>
                         <p className="text-sm font-bold text-green-600 mt-1">
-                          ${order.totalAmount.toFixed(2)} AUD
+                          ${(order.totalAmount || 0).toFixed(2)} AUD
                         </p>
                       </div>
                     </div>
