@@ -40,19 +40,27 @@ export default async function ReviewsPage() {
               const deleteAction = deleteReview.bind(null, review.id);
               return (
                 <div key={review.id} className="p-6 flex flex-col md:flex-row gap-6 items-start md:items-center hover:bg-gray-50 transition">
-                  <div className="flex-1 space-y-2">
-                    <div className="flex items-center gap-2">
-                      <h3 className="font-bold text-gray-900 text-lg">{review.name}</h3>
-                      <div className="flex text-yellow-400">
-                        {[...Array(5)].map((_, i) => (
-                          <Star key={i} className={`w-4 h-4 ${i < (review.rating || 5) ? 'fill-current' : 'text-gray-200'}`} />
-                        ))}
+                  <div className="flex-1 space-y-3">
+                    <div className="flex items-center gap-4">
+                      {review.photoUrl && (
+                        // eslint-disable-next-line @next/next/no-img-element
+                        <img src={review.photoUrl} alt="Review attachment" className="w-14 h-14 object-cover rounded-xl shadow-sm border border-gray-200" />
+                      )}
+                      <div>
+                        <div className="flex items-center gap-2">
+                          <h3 className="font-bold text-gray-900 text-lg">{review.userName || "Anonymous"}</h3>
+                          <div className="flex text-yellow-400">
+                            {[...Array(5)].map((_, i) => (
+                              <Star key={i} className={`w-4 h-4 ${i < (review.rating || 5) ? 'fill-current' : 'text-gray-200'}`} />
+                            ))}
+                          </div>
+                        </div>
+                        <p className="text-xs text-gray-400 mt-1">
+                          {new Date(review.createdAt).toLocaleDateString()} at {new Date(review.createdAt).toLocaleTimeString()}
+                        </p>
                       </div>
                     </div>
-                    <p className="text-gray-700 italic">"{review.review}"</p>
-                    <p className="text-xs text-gray-400">
-                      {new Date(review.createdAt).toLocaleDateString()} at {new Date(review.createdAt).toLocaleTimeString()}
-                    </p>
+                    <p className="text-gray-700 italic bg-gray-50 p-4 rounded-xl border border-gray-100">"{review.text}"</p>
                   </div>
                   
                   <form action={deleteAction} className="shrink-0">

@@ -14,7 +14,8 @@ const STATUS_COLORS: Record<string, string> = {
   Cancelled: "bg-red-100 text-red-600",
 };
 
-export default async function OrdersPage({ searchParams }: { searchParams: { q?: string } }) {
+export default async function OrdersPage(props: { searchParams: Promise<{ q?: string }> }) {
+  const searchParams = await props.searchParams;
   const db = getDb();
   const snap = await db.ref("orders").orderByChild("createdAt").get();
   let orders: any[] = [];
