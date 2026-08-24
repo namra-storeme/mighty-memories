@@ -1,6 +1,6 @@
 import { getDb } from "@/lib/firebase";
 import { Settings as SettingsIcon, FileText } from "lucide-react";
-import { updateSettings, updateAbout } from "../actions";
+import { updateAbout } from "../actions";
 
 export const dynamic = "force-dynamic";
 
@@ -33,27 +33,24 @@ export default async function SettingsPage() {
             </div>
           </div>
 
-          <form action={updateSettings} className="space-y-6">
+          <form action={async () => {
+            "use server";
+            const { initiateEmailChange } = await import("../actions");
+            await initiateEmailChange();
+          }} className="space-y-6">
             <div>
               <label className="block text-sm font-semibold text-gray-700 mb-2">Admin Notification Email</label>
               <input
                 type="email"
-                name="email"
-                defaultValue={settings.email || "admin@mightymemories.com"}
-                required
-                className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none bg-gray-50 focus:bg-white transition"
+                disabled
+                value={settings.email || "admin@mightymemories.com"}
+                className="w-full px-4 py-3 border border-gray-200 rounded-xl outline-none bg-gray-100 text-gray-500 cursor-not-allowed"
               />
-              <p className="text-xs text-gray-500 mt-2">New order notifications will be sent here.</p>
+              <p className="text-xs text-gray-500 mt-2">To change this email, you must first verify your identity with an OTP sent to your current email.</p>
             </div>
 
-            {/* Hidden fields to preserve existing email template settings during standard updateSettings call */}
-            <input type="hidden" name="receiptEmailSubject" value={settings.receiptEmailSubject || ""} />
-            <input type="hidden" name="receiptEmailBody" value={settings.receiptEmailBody || ""} />
-            <input type="hidden" name="shippingEmailSubject" value={settings.shippingEmailSubject || ""} />
-            <input type="hidden" name="shippingEmailBody" value={settings.shippingEmailBody || ""} />
-
             <button type="submit" className="bg-black text-white px-8 py-3 rounded-xl font-bold hover:bg-gray-800 transition shadow-lg">
-              Save Settings
+              Change Email
             </button>
           </form>
         </div>
@@ -70,24 +67,16 @@ export default async function SettingsPage() {
             </div>
           </div>
 
-          <form action={async (formData: FormData) => {
+          <form action={async () => {
             "use server";
-            const { changePassword } = await import("../actions");
-            await changePassword(formData);
+            const { initiatePasswordChange } = await import("../actions");
+            await initiatePasswordChange();
           }} className="space-y-6">
-            <div>
-              <label className="block text-sm font-semibold text-gray-700 mb-2">New Password</label>
-              <input
-                type="password"
-                name="newPassword"
-                required
-                minLength={6}
-                className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-red-500 outline-none bg-gray-50 focus:bg-white transition"
-              />
-              <p className="text-xs text-gray-500 mt-2">You will need to verify this change via email OTP.</p>
-            </div>
+            <p className="text-sm text-gray-700 mb-4">
+              To change your password, we will first send an OTP to your admin email address to verify your identity.
+            </p>
             <button type="submit" className="bg-red-600 text-white px-8 py-3 rounded-xl font-bold hover:bg-red-700 transition shadow-lg">
-              Change Password
+              Initiate Password Change
             </button>
           </form>
         </div>

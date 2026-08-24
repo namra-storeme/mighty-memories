@@ -1,12 +1,11 @@
 "use client";
-
 import { useActionState } from "react";
-import { ShieldAlert } from "lucide-react";
-import { verifyPasswordOTP } from "../../actions";
+import { ShieldCheck } from "lucide-react";
+import { verifyOldPasswordOTP } from "../../actions";
 
-export default function VerifyPasswordPage() {
+export default function Page() {
   const [state, action, isPending] = useActionState(async (prevState: any, formData: FormData) => {
-    return await verifyPasswordOTP(formData);
+    return await verifyOldPasswordOTP(formData);
   }, null);
 
   return (
@@ -14,10 +13,10 @@ export default function VerifyPasswordPage() {
       <div className="bg-white rounded-3xl shadow-sm border border-gray-100 p-8">
         <div className="text-center mb-8">
           <div className="w-16 h-16 bg-red-50 rounded-2xl flex items-center justify-center mx-auto mb-4">
-            <ShieldAlert className="w-8 h-8 text-red-600" />
+            <ShieldCheck className="w-8 h-8 text-red-600" />
           </div>
-          <h1 className="text-2xl font-extrabold text-gray-900 mb-2">Verify Password Change</h1>
-          <p className="text-gray-500 text-sm">We sent a 6-digit OTP to your admin email address to authorize this change.</p>
+          <h1 className="text-2xl font-extrabold text-gray-900 mb-2">Verify Identity (Password)</h1>
+          <p className="text-gray-500 text-sm">We sent a 6-digit OTP to your admin email. Enter it below to authorize changing your password.</p>
         </div>
 
         {state?.error && (
@@ -42,9 +41,9 @@ export default function VerifyPasswordPage() {
           <button 
             type="submit" 
             disabled={isPending}
-            className="w-full bg-black text-white font-bold py-3 rounded-xl hover:bg-gray-800 transition-all disabled:opacity-50"
+            className="w-full bg-red-600 text-white font-bold py-3 rounded-xl hover:bg-red-700 transition-all disabled:opacity-50"
           >
-            {isPending ? "Verifying..." : "Verify & Change Password"}
+            {isPending ? "Verifying..." : "Verify OTP"}
           </button>
         </form>
       </div>

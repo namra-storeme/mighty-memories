@@ -1,12 +1,11 @@
 "use client";
-
 import { useActionState } from "react";
-import { Mail, ShieldCheck } from "lucide-react";
-import { verifyEmailOTP } from "../../actions";
+import { Mail } from "lucide-react";
+import { submitNewEmail } from "../../actions";
 
-export default function VerifyEmailPage() {
+export default function Page() {
   const [state, action, isPending] = useActionState(async (prevState: any, formData: FormData) => {
-    return await verifyEmailOTP(formData);
+    return await submitNewEmail(formData);
   }, null);
 
   return (
@@ -14,10 +13,10 @@ export default function VerifyEmailPage() {
       <div className="bg-white rounded-3xl shadow-sm border border-gray-100 p-8">
         <div className="text-center mb-8">
           <div className="w-16 h-16 bg-blue-50 rounded-2xl flex items-center justify-center mx-auto mb-4">
-            <ShieldCheck className="w-8 h-8 text-blue-600" />
+            <Mail className="w-8 h-8 text-blue-600" />
           </div>
-          <h1 className="text-2xl font-extrabold text-gray-900 mb-2">Verify Email</h1>
-          <p className="text-gray-500 text-sm">We sent a 6-digit OTP to your new email address to verify it is real. Please enter it below.</p>
+          <h1 className="text-2xl font-extrabold text-gray-900 mb-2">Enter New Email</h1>
+          <p className="text-gray-500 text-sm">Your identity is verified. Please enter the new email address you want to use.</p>
         </div>
 
         {state?.error && (
@@ -28,14 +27,12 @@ export default function VerifyEmailPage() {
 
         <form action={action} className="space-y-6">
           <div>
-            <label className="block text-sm font-semibold text-gray-700 mb-2 text-center uppercase tracking-wider">6-Digit OTP</label>
+            <label className="block text-sm font-semibold text-gray-700 mb-2">New Email Address</label>
             <input
-              type="text"
-              name="otp"
-              placeholder="123456"
-              maxLength={6}
+              type="email"
+              name="newEmail"
               required
-              className="w-full px-4 py-4 text-center text-2xl tracking-widest font-mono border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none bg-gray-50 focus:bg-white transition"
+              className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none bg-gray-50 focus:bg-white transition"
             />
           </div>
           
@@ -44,7 +41,7 @@ export default function VerifyEmailPage() {
             disabled={isPending}
             className="w-full bg-black text-white font-bold py-3 rounded-xl hover:bg-gray-800 transition-all disabled:opacity-50"
           >
-            {isPending ? "Verifying..." : "Verify & Save"}
+            {isPending ? "Sending OTP..." : "Continue"}
           </button>
         </form>
       </div>

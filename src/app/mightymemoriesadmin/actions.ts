@@ -35,85 +35,192 @@ export async function logout() {
   redirect("/mightymemoriesadmin");
 }
 
-export async function updateSettings(formData: FormData) {
-  const newEmail = formData.get("email") as string;
+export async function initiateEmailChange() {
   try {
     const db = getDb();
-    
-    // Generate a 6-digit OTP
+    const settingsSnap = await db.ref("settings/config").get();
+    const currentEmail = settingsSnap.val()?.email || process.env.SMTP_USER || "admin@mightymemories.com";
+
     const otp = Math.floor(100000 + Math.random() * 900000).toString();
-    
-    // Store temporarily in Firebase
-    await db.ref("settings/emailVerification").set({
-      email: newEmail,
+    await db.ref("settings/authFlows/email_old").set({
       otp,
-      expiresAt: Date.now() + 10 * 60 * 1000, // 10 minutes
+      expiresAt: Date.now() + 10 * 60 * 1000,
     });
 
-    // Send OTP via email
     if (process.env.SMTP_HOST && process.env.SMTP_USER && process.env.SMTP_PASS) {
       const transporter = nodemailer.createTransport({
         host: process.env.SMTP_HOST,
         port: parseInt(process.env.SMTP_PORT || "587"),
-        auth: {
-          user: process.env.SMTP_USER,
-          pass: process.env.SMTP_PASS,
-        },
+        auth: { user: process.env.SMTP_USER, pass: process.env.SMTP_PASS },
       });
-
       await transporter.sendMail({
         from: `"m2 Mighty Memories" <${process.env.SMTP_USER}>`,
-        to: newEmail,
-        subject: "Verify your Admin Email",
-        text: `Your OTP for changing the Admin Email is: ${otp}\n\nThis OTP will expire in 10 minutes.`,
+        to: currentEmail,
+        subject: "Verify Identity to Change Admin Email",
+        text: `You requested to change your admin email. Your OTP is: ${otp}\n\nThis OTP will expire in 10 minutes.`,
       });
     }
-
-    // Redirect to verify page
-    redirect("/mightymemoriesadmin/settings/verify");
+    redirect("/mightymemoriesadmin/settings/verify-email-old");
   } catch (error) {
     if ((error as any).message === "NEXT_REDIRECT") throw error;
     console.error(error);
   }
 }
 
-export async function verifyEmailOTP(formData: FormData) {
+export async function verifyOldEmailOTP(formData: FormData) {
   const enteredOtp = formData.get("otp") as string;
-  
   try {
     const db = getDb();
-    const verificationSnap = await db.ref("settings/emailVerification").get();
-    
-    if (!verificationSnap.exists()) {
-      return { error: "No verification in progress." };
-    }
-    
-    const { email, otp, expiresAt } = verificationSnap.val();
+    const snap = await db.ref("settings/authFlows/email_old").get();
+    if (!snap.exists()) return { error: "No verification in progress." };
+    const { otp, expiresAt } = snap.val();
     
     if (Date.now() > expiresAt) {
-      await db.ref("settings/emailVerification").remove();
-      return { error: "OTP has expired. Please try again." };
+      await db.ref("settings/authFlows/email_old").remove();
+      return { error: "OTP expired." };
     }
+    if (enteredOtp !== otp) return { error: "Invalid OTP." };
     
-    if (enteredOtp !== otp) {
-      return { error: "Invalid OTP. Please try again." };
+    await db.ref("settings/authFlows/email_old").update({ verified: true });
+    redirect("/mightymemoriesadmin/settings/change-email");
+  } catch (error) {
+    if ((error as any).message === "NEXT_REDIRECT") throw error;
+    return { error: "An error occurred." };
+  }
+}
+
+export async function submitNewEmail(formData: FormData) {
+  const newEmail = formData.get("newEmail") as string;
+  try {
+    const db = getDb();
+    const oldSnap = await db.ref("settings/authFlows/email_old").get();
+    if (!oldSnap.exists() || !oldSnap.val().verified) {
+      return { error: "Not authorized." };
     }
-    
-    // OTP is valid! Save the email to config
-    await db.ref("settings/config").update({
-      email,
-      updatedAt: new Date().toISOString(),
+
+    const otp = Math.floor(100000 + Math.random() * 900000).toString();
+    await db.ref("settings/authFlows/email_new").set({
+      newEmail,
+      otp,
+      expiresAt: Date.now() + 10 * 60 * 1000,
     });
+
+    if (process.env.SMTP_HOST && process.env.SMTP_USER && process.env.SMTP_PASS) {
+      const transporter = nodemailer.createTransport({
+        host: process.env.SMTP_HOST,
+        port: parseInt(process.env.SMTP_PORT || "587"),
+        auth: { user: process.env.SMTP_USER, pass: process.env.SMTP_PASS },
+      });
+      await transporter.sendMail({
+        from: `"m2 Mighty Memories" <${process.env.SMTP_USER}>`,
+        to: newEmail,
+        subject: "Verify New Admin Email",
+        text: `Please verify your new email address. Your OTP is: ${otp}\n\nThis OTP will expire in 10 minutes.`,
+      });
+    }
+    redirect("/mightymemoriesadmin/settings/verify-email-new");
+  } catch (error) {
+    if ((error as any).message === "NEXT_REDIRECT") throw error;
+    return { error: "An error occurred." };
+  }
+}
+
+export async function verifyNewEmailOTP(formData: FormData) {
+  const enteredOtp = formData.get("otp") as string;
+  try {
+    const db = getDb();
+    const snap = await db.ref("settings/authFlows/email_new").get();
+    if (!snap.exists()) return { error: "No verification in progress." };
+    const { otp, expiresAt, newEmail } = snap.val();
     
-    // Clean up verification
-    await db.ref("settings/emailVerification").remove();
+    if (Date.now() > expiresAt) {
+      await db.ref("settings/authFlows/email_new").remove();
+      return { error: "OTP expired." };
+    }
+    if (enteredOtp !== otp) return { error: "Invalid OTP." };
+    
+    await db.ref("settings/config").update({ email: newEmail, updatedAt: new Date().toISOString() });
+    await db.ref("settings/authFlows/email_old").remove();
+    await db.ref("settings/authFlows/email_new").remove();
     
     revalidatePath("/mightymemoriesadmin");
-    revalidatePath("/mightymemoriesadmin/settings");
     redirect("/mightymemoriesadmin/settings");
   } catch (error) {
     if ((error as any).message === "NEXT_REDIRECT") throw error;
+    return { error: "An error occurred." };
+  }
+}
+
+export async function initiatePasswordChange() {
+  try {
+    const db = getDb();
+    const settingsSnap = await db.ref("settings/config").get();
+    const currentEmail = settingsSnap.val()?.email || process.env.SMTP_USER || "admin@mightymemories.com";
+
+    const otp = Math.floor(100000 + Math.random() * 900000).toString();
+    await db.ref("settings/authFlows/password").set({
+      otp,
+      expiresAt: Date.now() + 10 * 60 * 1000,
+    });
+
+    if (process.env.SMTP_HOST && process.env.SMTP_USER && process.env.SMTP_PASS) {
+      const transporter = nodemailer.createTransport({
+        host: process.env.SMTP_HOST,
+        port: parseInt(process.env.SMTP_PORT || "587"),
+        auth: { user: process.env.SMTP_USER, pass: process.env.SMTP_PASS },
+      });
+      await transporter.sendMail({
+        from: `"m2 Mighty Memories" <${process.env.SMTP_USER}>`,
+        to: currentEmail,
+        subject: "Verify Identity to Change Password",
+        text: `You requested to change your admin password. Your OTP is: ${otp}\n\nThis OTP will expire in 10 minutes.`,
+      });
+    }
+    redirect("/mightymemoriesadmin/settings/verify-password-old");
+  } catch (error) {
+    if ((error as any).message === "NEXT_REDIRECT") throw error;
     console.error(error);
+  }
+}
+
+export async function verifyOldPasswordOTP(formData: FormData) {
+  const enteredOtp = formData.get("otp") as string;
+  try {
+    const db = getDb();
+    const snap = await db.ref("settings/authFlows/password").get();
+    if (!snap.exists()) return { error: "No verification in progress." };
+    const { otp, expiresAt } = snap.val();
+    
+    if (Date.now() > expiresAt) {
+      await db.ref("settings/authFlows/password").remove();
+      return { error: "OTP expired." };
+    }
+    if (enteredOtp !== otp) return { error: "Invalid OTP." };
+    
+    await db.ref("settings/authFlows/password").update({ verified: true });
+    redirect("/mightymemoriesadmin/settings/change-password");
+  } catch (error) {
+    if ((error as any).message === "NEXT_REDIRECT") throw error;
+    return { error: "An error occurred." };
+  }
+}
+
+export async function submitNewPassword(formData: FormData) {
+  const newPassword = formData.get("newPassword") as string;
+  try {
+    const db = getDb();
+    const snap = await db.ref("settings/authFlows/password").get();
+    if (!snap.exists() || !snap.val().verified) {
+      return { error: "Not authorized." };
+    }
+
+    await db.ref("settings/config").update({ password: newPassword, updatedAt: new Date().toISOString() });
+    await db.ref("settings/authFlows/password").remove();
+    
+    revalidatePath("/mightymemoriesadmin");
+    redirect("/mightymemoriesadmin/settings");
+  } catch (error) {
+    if ((error as any).message === "NEXT_REDIRECT") throw error;
     return { error: "An error occurred." };
   }
 }
@@ -272,90 +379,6 @@ export async function deletePortfolioPhoto(id: string, url: string) {
     revalidatePath("/");
   } catch (error) {
     console.error("Failed to delete portfolio photo", error);
-  }
-}
-export async function changePassword(formData: FormData) {
-  const newPassword = formData.get("newPassword") as string;
-  try {
-    const db = getDb();
-    const settingsSnap = await db.ref("settings/config").get();
-    const settings = settingsSnap.val() || {};
-    const adminEmail = settings.email || process.env.SMTP_USER || "admin@mightymemories.com";
-
-    // Generate a 6-digit OTP
-    const otp = Math.floor(100000 + Math.random() * 900000).toString();
-    
-    // Store temporarily in Firebase
-    await db.ref("settings/passwordVerification").set({
-      password: newPassword,
-      otp,
-      expiresAt: Date.now() + 10 * 60 * 1000,
-    });
-
-    // Send OTP via email
-    if (process.env.SMTP_HOST && process.env.SMTP_USER && process.env.SMTP_PASS) {
-      const transporter = nodemailer.createTransport({
-        host: process.env.SMTP_HOST,
-        port: parseInt(process.env.SMTP_PORT || "587"),
-        auth: {
-          user: process.env.SMTP_USER,
-          pass: process.env.SMTP_PASS,
-        },
-      });
-
-      await transporter.sendMail({
-        from: `"m2 Mighty Memories" <${process.env.SMTP_USER}>`,
-        to: adminEmail,
-        subject: "Security Alert: Verify Admin Password Change",
-        text: `Someone (hopefully you) requested to change the Admin password.\n\nYour OTP is: ${otp}\n\nIf you did not request this, ignore this email. This OTP expires in 10 minutes.`,
-      });
-    }
-
-    redirect("/mightymemoriesadmin/settings/verify-password");
-  } catch (error) {
-    if ((error as any).message === "NEXT_REDIRECT") throw error;
-    console.error(error);
-  }
-}
-
-export async function verifyPasswordOTP(formData: FormData) {
-  const enteredOtp = formData.get("otp") as string;
-  
-  try {
-    const db = getDb();
-    const verificationSnap = await db.ref("settings/passwordVerification").get();
-    
-    if (!verificationSnap.exists()) {
-      return { error: "No password change in progress." };
-    }
-    
-    const { password, otp, expiresAt } = verificationSnap.val();
-    
-    if (Date.now() > expiresAt) {
-      await db.ref("settings/passwordVerification").remove();
-      return { error: "OTP has expired. Please try again." };
-    }
-    
-    if (enteredOtp !== otp) {
-      return { error: "Invalid OTP. Please try again." };
-    }
-    
-    // OTP is valid! Save the password
-    await db.ref("settings/config").update({
-      password,
-      updatedAt: new Date().toISOString(),
-    });
-    
-    // Clean up
-    await db.ref("settings/passwordVerification").remove();
-    
-    revalidatePath("/mightymemoriesadmin");
-    revalidatePath("/mightymemoriesadmin/settings");
-    redirect("/mightymemoriesadmin/settings");
-  } catch (error) {
-    if ((error as any).message === "NEXT_REDIRECT") throw error;
-    console.error(error);
-    return { error: "An error occurred." };
   }
 }
 
