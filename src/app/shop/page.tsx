@@ -9,13 +9,13 @@ type ProductType = "Custom Photo Magnets" | "Single Picture Magnets";
 
 // ── Pricing helpers ──────────────────────────────────────────────────────────
 const SHIPPING = 8.99;
-const FREE_SHIPPING_THRESHOLD = 40; // free shipping when subtotal >= $40
+const FREE_SHIPPING_THRESHOLD = 40; // free shipping when subtotal > $40
 
 function getUnitPrice(product: ProductType, qty: number): number {
   if (product === "Custom Photo Magnets") {
     return qty >= 6 ? 4 : 5;
   }
-  return 3.5;
+  return 3.50; // Single Picture Magnets
 }
 
 function getSubtotal(product: ProductType, qty: number): number {
@@ -24,7 +24,7 @@ function getSubtotal(product: ProductType, qty: number): number {
 
 function getShippingCost(subtotal: number, localPickup: boolean): number {
   if (localPickup) return 0;
-  return subtotal >= FREE_SHIPPING_THRESHOLD ? 0 : SHIPPING;
+  return subtotal > FREE_SHIPPING_THRESHOLD ? 0 : SHIPPING;
 }
 
 const MIN_QTY: Record<ProductType, number> = {
@@ -178,7 +178,7 @@ export default function ShopPage() {
   // ── Derived values ─────────────────────────────────────────────────────────
   const unitPrice = getUnitPrice(productType, quantity);
   const subtotal = getSubtotal(productType, quantity);
-  const qualifiesFreeShipping = subtotal >= FREE_SHIPPING_THRESHOLD;
+  const qualifiesFreeShipping = subtotal > FREE_SHIPPING_THRESHOLD;
   const shippingCost = getShippingCost(subtotal, localPickup);
   const total = subtotal + shippingCost;
   const isSingle = productType === "Single Picture Magnets";
@@ -269,7 +269,7 @@ export default function ShopPage() {
                     </span>
                   ) : (
                     <span className="text-[10px] text-gray-400 flex items-center gap-1">
-                      <Truck className="w-3 h-3" /> Free on $40+
+                      <Truck className="w-3 h-3" /> Free over $40
                     </span>
                   )}
                 </div>
