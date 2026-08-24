@@ -143,12 +143,65 @@ export async function POST(req: Request) {
           </div>`
         : "";
 
-
       const customerEmailPromise = transporter.sendMail({
         from: `"m2 Mighty Memories" <${process.env.SMTP_USER}>`,
         to: email,
-        subject: receiptSub,
-        html: `
+        subject: localPickup
+          ? `📍 Your Order is Confirmed — Ready for Pickup! (${orderId})`
+          : receiptSub,
+        html: localPickup
+          ? /* ── LOCAL PICKUP EMAIL ── */ `
+          <div style="font-family:Arial,sans-serif;max-width:600px;margin:0 auto;border:1px solid #e5e7eb;border-radius:12px;overflow:hidden;">
+            <div style="background:linear-gradient(135deg,#16a34a,#15803d);color:white;padding:28px 32px;text-align:center;">
+              <div style="font-size:40px;margin-bottom:8px;">📍</div>
+              <h1 style="margin:0;font-size:24px;">Local Pickup Confirmed!</h1>
+              <p style="margin:8px 0 0;opacity:0.85;font-size:14px;">Order ID: <strong>${orderId}</strong></p>
+            </div>
+            <div style="padding:32px;background:#fff;">
+              <h2 style="margin:0 0 12px;color:#111827;font-size:18px;">Hi ${name.split(" ")[0]},</h2>
+              <p style="margin:0 0 20px;color:#4b5563;font-size:15px;line-height:1.6;">
+                Thank you for your order! You've chosen <strong>Free Local Pickup</strong> from Toongabbie, Sydney.
+                We'll get started on your magnets right away. 🎉
+              </p>
+
+              <div style="background:#f0fdf4;border:1px solid #bbf7d0;border-radius:12px;padding:20px;margin-bottom:24px;">
+                <h3 style="margin:0 0 12px;color:#15803d;font-size:16px;">📍 Pickup Details</h3>
+                <p style="margin:0;color:#166534;font-size:14px;line-height:1.7;">
+                  <strong>Location:</strong> Toongabbie, Sydney NSW<br>
+                  <strong>Address:</strong> We'll email you the exact address once your order is ready.<br>
+                  <strong>How it works:</strong> Once your magnets are finished, we'll contact you to arrange a convenient pickup time.
+                </p>
+              </div>
+
+              <div style="background:#f9fafb;padding:20px;border-radius:12px;border:1px solid #e5e7eb;margin-bottom:24px;">
+                <h3 style="margin:0 0 16px;color:#111827;font-size:16px;">Order Summary</h3>
+                <table style="width:100%;border-collapse:collapse;">
+                  <tr><td style="padding:8px 0;color:#6b7280;font-size:14px;">Product</td><td style="padding:8px 0;color:#111827;font-weight:600;text-align:right;">${productType}</td></tr>
+                  <tr><td style="padding:8px 0;color:#6b7280;font-size:14px;">Package</td><td style="padding:8px 0;color:#111827;text-align:right;font-size:14px;">${packageDetails}</td></tr>
+                  <tr><td style="padding:8px 0;color:#6b7280;font-size:14px;">Subtotal</td><td style="padding:8px 0;color:#111827;text-align:right;">$${subtotalNum.toFixed(2)} AUD</td></tr>
+                  <tr><td style="padding:8px 0;color:#6b7280;font-size:14px;">Shipping</td><td style="padding:8px 0;color:#16a34a;font-weight:600;text-align:right;">FREE (Local Pickup) 🎉</td></tr>
+                  <tr style="border-top:2px solid #e5e7eb;"><td style="padding:12px 0 4px;color:#111827;font-weight:700;font-size:16px;">Total</td><td style="padding:12px 0 4px;color:#111827;font-weight:700;font-size:16px;text-align:right;">$${totalAmount.toFixed(2)} AUD</td></tr>
+                </table>
+              </div>
+
+              <div style="background:#fefce8;border:1px solid #fef08a;border-radius:10px;padding:16px;margin-bottom:24px;">
+                <p style="margin:0;color:#854d0e;font-size:13px;line-height:1.6;">
+                  ⏳ <strong>What happens next?</strong><br>
+                  1. We prepare your custom magnets with care.<br>
+                  2. We'll email you the exact pickup address in Toongabbie.<br>
+                  3. We'll coordinate a time that works for you to collect your order.
+                </p>
+              </div>
+
+              ${customerPhotoHtml}
+            </div>
+            <div style="background:#f9fafb;padding:20px 32px;text-align:center;border-top:1px solid #e5e7eb;">
+              <p style="margin:0;color:#6b7280;font-size:14px;">Have questions? Reply directly to this email.</p>
+              <p style="margin:8px 0 0;color:#9ca3af;font-size:12px;">m2 mighty memories — Custom Magnet Stickers</p>
+            </div>
+          </div>
+          `
+          : /* ── STANDARD SHIPPING EMAIL ── */ `
           <div style="font-family:Arial,sans-serif;max-width:600px;margin:0 auto;border:1px solid #e5e7eb;border-radius:12px;overflow:hidden;">
             <div style="background:linear-gradient(135deg,#111827,#374151);color:white;padding:28px 32px;text-align:center;">
               <h1 style="margin:0;font-size:24px;">🎉 Order Received!</h1>
@@ -164,7 +217,7 @@ export async function POST(req: Request) {
                   <tr><td style="padding:8px 0;color:#6b7280;font-size:14px;">Product</td><td style="padding:8px 0;color:#111827;font-weight:600;text-align:right;">${productType}</td></tr>
                   <tr><td style="padding:8px 0;color:#6b7280;font-size:14px;">Package</td><td style="padding:8px 0;color:#111827;text-align:right;font-size:14px;">${packageDetails}</td></tr>
                   <tr><td style="padding:8px 0;color:#6b7280;font-size:14px;">Subtotal</td><td style="padding:8px 0;color:#111827;text-align:right;">$${subtotalNum.toFixed(2)} AUD</td></tr>
-                  <tr><td style="padding:8px 0;color:#6b7280;font-size:14px;">Shipping</td><td style="padding:8px 0;text-align:right;${freeShipping ? 'color:#16a34a;font-weight:600;' : ''}"> ${freeShipping ? 'FREE 🎉' : `$${shippingNum.toFixed(2)} AUD`}</td></tr>
+                  <tr><td style="padding:8px 0;color:#6b7280;font-size:14px;">Shipping</td><td style="padding:8px 0;text-align:right;${freeShipping ? 'color:#16a34a;font-weight:600;' : ''}">${freeShipping ? 'FREE 🎉' : `$${shippingNum.toFixed(2)} AUD`}</td></tr>
                   <tr style="border-top:2px solid #e5e7eb;"><td style="padding:12px 0 4px;color:#111827;font-weight:700;font-size:16px;">Total</td><td style="padding:12px 0 4px;color:#111827;font-weight:700;font-size:16px;text-align:right;">$${totalAmount.toFixed(2)} AUD</td></tr>
                 </table>
               </div>
@@ -180,8 +233,9 @@ export async function POST(req: Request) {
               <p style="margin:8px 0 0;color:#9ca3af;font-size:12px;">m2 mighty memories — Custom Magnet Stickers</p>
             </div>
           </div>
-        `,
+          `,
       });
+
 
       const results = await Promise.allSettled([adminEmailPromise, customerEmailPromise]);
       results.forEach((result, index) => {
