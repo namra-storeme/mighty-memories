@@ -58,26 +58,33 @@ export default async function Home() {
         </div>
       </section>
 
-      {/* 3-Column Feature Banner */}
+      {/* Feature Banner */}
       <section className="bg-[#fafafa] py-12 border-b border-gray-100">
-        <div className="max-w-7xl mx-auto px-4 grid grid-cols-1 md:grid-cols-3 gap-8 text-center divide-y md:divide-y-0 md:divide-x divide-gray-200">
-          <div className="pt-8 md:pt-0">
-            <h3 className="font-bold text-gray-900 mb-2 text-sm flex items-center justify-center gap-2">
+        <div className="max-w-7xl mx-auto px-4 flex flex-wrap items-center justify-center gap-x-10 gap-y-6 text-center">
+          <div>
+            <h3 className="font-bold text-gray-900 text-sm flex items-center justify-center gap-2">
               🚚 Australia Wide Shipping
             </h3>
-            <p className="text-xs text-gray-500">Fast and reliable delivery across Australia</p>
           </div>
-          <div className="pt-8 md:pt-0">
-            <h3 className="font-bold text-gray-900 mb-2 text-sm flex items-center justify-center gap-2">
+          <div>
+            <h3 className="font-bold text-gray-900 text-sm flex items-center justify-center gap-2">
               ♡ Made With Care
             </h3>
-            <p className="text-xs text-gray-500">Thoughtfully prepared for your memories</p>
           </div>
-          <div className="pt-8 md:pt-0">
-            <h3 className="font-bold text-gray-900 mb-2 text-sm flex items-center justify-center gap-2">
+          <div>
+            <h3 className="font-bold text-gray-900 text-sm flex items-center justify-center gap-2">
               ✓ Premium Quality
             </h3>
-            <p className="text-xs text-gray-500">Beautiful photo prints made to last</p>
+          </div>
+          <div>
+            <h3 className="font-bold text-gray-900 text-sm flex items-center justify-center gap-2">
+              🎁 For Gift
+            </h3>
+          </div>
+          <div>
+            <h3 className="font-bold text-gray-900 text-sm flex items-center justify-center gap-2">
+              💼 For Business
+            </h3>
           </div>
         </div>
       </section>
