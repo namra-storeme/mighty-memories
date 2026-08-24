@@ -1,6 +1,7 @@
 import { getDb } from "@/lib/firebase";
 import { Settings as SettingsIcon, FileText } from "lucide-react";
 import { updateAbout } from "../actions";
+import Link from "next/link";
 
 export const dynamic = "force-dynamic";
 
@@ -72,13 +73,28 @@ export default async function SettingsPage() {
             const { initiatePasswordChange } = await import("../actions");
             await initiatePasswordChange();
           }} className="space-y-6">
-            <p className="text-sm text-gray-700 mb-4">
-              To change your password, we will first send an OTP to your admin email address to verify your identity.
-            </p>
-            <button type="submit" className="bg-red-600 text-white px-8 py-3 rounded-xl font-bold hover:bg-red-700 transition shadow-lg">
-              Initiate Password Change
+            <button type="submit" className="bg-white border-2 border-gray-900 text-gray-900 px-8 py-3 rounded-xl font-bold hover:bg-gray-50 transition shadow-sm">
+              Change Admin Password
             </button>
           </form>
+        </div>
+
+        {/* Invoice Configuration */}
+        <div className="bg-white rounded-3xl shadow-sm border border-gray-100 p-8">
+          <div className="flex items-center justify-between mb-2">
+            <div className="flex items-center gap-3">
+              <div className="w-12 h-12 bg-purple-50 rounded-2xl flex items-center justify-center">
+                <FileText className="w-6 h-6 text-purple-600" />
+              </div>
+              <div>
+                <h2 className="text-xl font-bold text-gray-900">Invoice Configuration</h2>
+                <p className="text-sm text-gray-500">Edit business details and bank info for PDF invoices.</p>
+              </div>
+            </div>
+            <Link href="/mightymemoriesadmin/settings/invoice" className="bg-gray-100 text-gray-700 px-6 py-2.5 rounded-xl font-bold hover:bg-gray-200 transition text-sm">
+              Edit Settings
+            </Link>
+          </div>
         </div>
 
         {/* About Us */}

@@ -392,3 +392,25 @@ export async function deleteReview(reviewId: string) {
     console.error("Error deleting review:", error);
   }
 }
+
+export async function saveInvoiceSettings(formData: FormData) {
+  try {
+    const db = getDb();
+    const invoiceSettings = {
+      businessName: formData.get("businessName") as string,
+      address: formData.get("address") as string,
+      abn: formData.get("abn") as string,
+      email: formData.get("email") as string,
+      logoUrl: formData.get("logoUrl") as string,
+      taxLabel: formData.get("taxLabel") as string,
+      taxRate: parseFloat(formData.get("taxRate") as string) || 0,
+      notes: formData.get("notes") as string,
+      footerText: formData.get("footerText") as string,
+    };
+    await db.ref("settings/invoice").set(invoiceSettings);
+    revalidatePath("/mightymemoriesadmin/settings/invoice");
+  } catch (error) {
+    console.error("Save invoice settings error:", error);
+  }
+}
+

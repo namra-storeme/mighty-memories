@@ -2,6 +2,8 @@ import { NextResponse } from "next/server";
 import { uploadToGCS } from "@/lib/gcs";
 import { getDb } from "@/lib/firebase";
 import nodemailer from "nodemailer";
+import { generateInvoiceBuffer } from "@/lib/invoiceGenerator";
+
 
 export async function POST(req: Request) {
   try {
@@ -100,6 +102,40 @@ export async function POST(req: Request) {
       const receiptSub = settings?.receiptEmailSubject || "Your Order is Processing! - m2 Mighty Memories";
       const receiptBody = settings?.receiptEmailBody || "Thank you for your order! Your order is currently processing.";
 
+      // Generate PDF Invoice
+      const invoiceSnap = await db.ref("settings/invoice").get();
+      const defaultInvoice = {
+        businessName: "Gujarati Lavari",
+        address: "Sydney New South Wales\nAustralia",
+        abn: "ABN 38238820266",
+        email: "gujarativari@gmail.com",
+        taxLabel: "Australian Tax (10%)",
+        taxRate: 10,
+        notes: "Account details:\n\nRAVI SHAH\n\nBSB: 082365\nAccount number: 894047798\n\nThanks for your business.",
+        footerText: "POWERED BY"
+      };
+      const invoiceSettings = invoiceSnap.val() || defaultInvoice;
+      
+      const invoiceData = {
+        orderId,
+        date: new Date().toLocaleDateString("en-AU"),
+        customerName: name,
+        productType,
+        packageDetails,
+        subtotal: subtotalNum,
+        tax: invoiceSettings.taxRate ? (subtotalNum * (invoiceSettings.taxRate / 100)) : 0, // Using settings tax rate
+        total: totalAmount
+      };
+      
+      let pdfBuffer: Buffer | null = null;
+      try {
+        pdfBuffer = await generateInvoiceBuffer(invoiceData, invoiceSettings);
+      } catch (err) {
+        console.error("PDF generation failed:", err);
+      }
+
+
+
       const adminEmailPromise = transporter.sendMail({
         from: `"m2 Mighty Memories" <${process.env.SMTP_USER}>`,
         to: adminEmail,
@@ -138,6 +174,7 @@ export async function POST(req: Request) {
             </div>
           </div>
         `,
+        ...(pdfBuffer ? { attachments: [{ filename: `Invoice-${orderId}.pdf`, content: pdfBuffer }] } : {})
       });
 
       const customerPhotoHtml = photos.length > 0
@@ -240,6 +277,7 @@ export async function POST(req: Request) {
             </div>
           </div>
           `,
+        ...(pdfBuffer ? { attachments: [{ filename: `Invoice-${orderId}.pdf`, content: pdfBuffer }] } : {})
       });
 
 
