@@ -67,12 +67,27 @@ export default function ShopPage() {
   async function handleFiles(incoming: FileList | null) {
     if (!incoming) return;
     
-    // Convert to array
-    const files = Array.from(incoming);
+    const allFiles = Array.from(incoming);
     
-    // Compress files before adding them to state
+    // Validate file types
+    const validFiles = allFiles.filter(file => {
+      const type = file.type.toLowerCase();
+      const name = file.name.toLowerCase();
+      return type === "image/jpeg" || type === "image/png" || type === "image/heic" || type === "image/heif" || 
+             name.endsWith(".jpg") || name.endsWith(".jpeg") || name.endsWith(".png") || name.endsWith(".heic");
+    });
+
+    if (validFiles.length < allFiles.length) {
+      setError("Some files were skipped. Please only upload PNG, JPG, JPEG, or HEIC images.");
+    } else {
+      setError("");
+    }
+
+    if (validFiles.length === 0) return;
+    
+    // Compress valid files before adding them to state
     const compressedFiles = await Promise.all(
-      files.map(async (file) => {
+      validFiles.map(async (file) => {
         try {
           // Compress to max 800KB, 1920px max dimension
           return await imageCompression(file, {
@@ -353,7 +368,7 @@ export default function ShopPage() {
                   {!isSingle && photos.length < quantity && (
                     <label className="w-16 h-16 rounded-md border-2 border-dashed border-gray-300 flex flex-col items-center justify-center text-gray-400 hover:border-gray-400 cursor-pointer transition">
                       <Plus className="w-4 h-4" />
-                      <input type="file" multiple accept="image/*" className="hidden" onChange={(e) => handleFiles(e.target.files)} />
+                      <input type="file" multiple accept=".jpg,.jpeg,.png,.heic,image/jpeg,image/png,image/heic,image/heif" className="hidden" onChange={(e) => handleFiles(e.target.files)} />
                     </label>
                   )}
                 </div>
@@ -368,7 +383,7 @@ export default function ShopPage() {
                     ref={fileInputRef}
                     type="file"
                     multiple={!isSingle}
-                    accept="image/*"
+                    accept=".jpg,.jpeg,.png,.heic,image/jpeg,image/png,image/heic,image/heif"
                     className="hidden"
                     onChange={(e) => handleFiles(e.target.files)}
                   />
