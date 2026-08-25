@@ -440,6 +440,17 @@ export default function ShopPage() {
                   />
                 </label>
               )}
+
+              {/* ── Image uploading banner ── */}
+              {anyUploading && (
+                <div className="mt-3 flex items-center gap-3 bg-blue-50 border border-blue-100 rounded-xl px-4 py-3">
+                  <Loader2 className="w-5 h-5 text-blue-500 animate-spin shrink-0" />
+                  <div>
+                    <p className="text-[12px] font-bold text-blue-700">Uploading your images…</p>
+                    <p className="text-[10px] text-blue-500 mt-0.5">Please wait — your photos are being saved securely.</p>
+                  </div>
+                </div>
+              )}
             </div>
 
             {/* SPECIAL INSTRUCTIONS */}
@@ -462,9 +473,17 @@ export default function ShopPage() {
             <button
               type="button"
               onClick={handleProceed}
-              className="w-full bg-[#1c1c1c] text-white py-3.5 rounded-lg font-bold uppercase tracking-wider hover:bg-black transition text-[12px]"
+              disabled={anyUploading}
+              className="w-full bg-[#1c1c1c] text-white py-3.5 rounded-lg font-bold uppercase tracking-wider hover:bg-black transition text-[12px] flex items-center justify-center gap-2 disabled:opacity-60 disabled:cursor-not-allowed"
             >
-              CONTINUE TO YOUR DETAILS →
+              {anyUploading ? (
+                <>
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                  Uploading Images…
+                </>
+              ) : (
+                "CONTINUE TO YOUR DETAILS →"
+              )}
             </button>
           </div>
         )}
