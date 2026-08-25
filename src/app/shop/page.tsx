@@ -38,6 +38,8 @@ export default function ShopPage() {
   const [productType, setProductType] = useState<ProductType>("Custom Photo Magnets");
   const [quantity, setQuantity] = useState<number>(MIN_QTY["Custom Photo Magnets"]);
   const [photos, setPhotos] = useState<File[]>([]);
+  const [photoUrls, setPhotoUrls] = useState<string[]>([]); // GCS URLs, pre-uploaded
+  const [isUploading, setIsUploading] = useState(false); // true while photos are being uploaded
   const [comments, setComments] = useState("");
   const [localPickup, setLocalPickup] = useState(false);
   const [step, setStep] = useState<1 | 2>(1);
@@ -50,6 +52,7 @@ export default function ShopPage() {
     setProductType(p);
     setQuantity(MIN_QTY[p]);
     setPhotos([]);
+    setPhotoUrls([]);
     setError("");
   }
 
@@ -60,6 +63,7 @@ export default function ShopPage() {
     setQuantity(next);
     if (productType === "Custom Photo Magnets") {
       setPhotos((prev) => prev.slice(0, next));
+      setPhotoUrls((prev) => prev.slice(0, next));
     }
   }
 
@@ -68,32 +72,19 @@ export default function ShopPage() {
     if (!incoming) return;
     
     const allFiles = Array.from(incoming);
-    
-    // Validate file types
-    const validFiles = allFiles.filter(file => {
-      const type = file.type.toLowerCase();
-      const name = file.name.toLowerCase();
-      return type === "image/jpeg" || type === "image/png" || type === "image/heic" || type === "image/heif" || 
-             name.endsWith(".jpg") || name.endsWith(".jpeg") || name.endsWith(".png") || name.endsWith(".heic");
-    });
+    if (allFiles.length === 0) return;
+    setError("");
 
-    if (validFiles.length < allFiles.length) {
-      setError("Some files were skipped. Please only upload PNG, JPG, JPEG, or HEIC images.");
-    } else {
-      setError("");
-    }
-
-    if (validFiles.length === 0) return;
-    
-    // Compress valid files before adding them to state
+    // Compress each image aggressively before uploading
+    // Target 0.5MB / 1200px max — works for any image type including HEIC
     const compressedFiles = await Promise.all(
-      validFiles.map(async (file) => {
+      allFiles.map(async (file) => {
         try {
-          // Compress to max 800KB, 1920px max dimension
           return await imageCompression(file, {
-            maxSizeMB: 0.8,
-            maxWidthOrHeight: 1920,
-            useWebWorker: true
+            maxSizeMB: 0.5,
+            maxWidthOrHeight: 1200,
+            useWebWorker: true,
+            fileType: "image/jpeg", // normalise everything to JPEG for compatibility
           });
         } catch (e) {
           console.error("Compression failed for", file.name, e);
@@ -102,11 +93,36 @@ export default function ShopPage() {
       })
     );
 
+    // Upload each compressed photo individually to avoid body size limits
+    setIsUploading(true);
+    const uploadedUrls: string[] = [];
+    for (const file of compressedFiles) {
+      try {
+        const fd = new FormData();
+        fd.append("photo", file, file.name || "photo.jpg");
+        const res = await fetch("/api/upload-photo", { method: "POST", body: fd });
+        if (!res.ok) throw new Error("Upload failed");
+        const { url } = await res.json();
+        uploadedUrls.push(url);
+      } catch (e) {
+        console.error("Failed to upload photo:", e);
+        setError("One or more photos failed to upload. Please try again.");
+        setIsUploading(false);
+        return;
+      }
+    }
+    setIsUploading(false);
+
     if (productType === "Single Picture Magnets") {
       setPhotos([compressedFiles[0] as File]);
+      setPhotoUrls([uploadedUrls[0]]);
     } else {
       setPhotos((prev) => {
         const combined = [...prev, ...compressedFiles as File[]];
+        return combined.slice(0, quantity);
+      });
+      setPhotoUrls((prev) => {
+        const combined = [...prev, ...uploadedUrls];
         return combined.slice(0, quantity);
       });
     }
@@ -114,6 +130,7 @@ export default function ShopPage() {
 
   function removePhoto(idx: number) {
     setPhotos((prev) => prev.filter((_, i) => i !== idx));
+    setPhotoUrls((prev) => prev.filter((_, i) => i !== idx));
   }
 
   // ── Validation ─────────────────────────────────────────────────────────────
@@ -150,7 +167,8 @@ export default function ShopPage() {
     formData.set("totalAmount", total.toFixed(2));
     formData.set("localPickup", localPickup ? "yes" : "no");
 
-    photos.forEach((file, i) => formData.append(`photo-${i}`, file));
+    // Photos were already uploaded — just send their GCS URLs as text fields
+    photoUrls.forEach((url, i) => formData.append(`photo-url-${i}`, url));
 
     try {
       const res = await fetch("/api/order/submit", { method: "POST", body: formData });
@@ -160,10 +178,6 @@ export default function ShopPage() {
       if (contentType && contentType.includes("application/json")) {
         data = await res.json();
       } else {
-        // Handle non-JSON responses (e.g. 413 Payload Too Large from Vercel)
-        if (res.status === 413) {
-          throw new Error("The uploaded photos are still too large for the server. Please try using fewer or smaller images.");
-        }
         throw new Error("Received an unexpected response from the server. Please try again.");
       }
 
@@ -368,7 +382,7 @@ export default function ShopPage() {
                   {!isSingle && photos.length < quantity && (
                     <label className="w-16 h-16 rounded-md border-2 border-dashed border-gray-300 flex flex-col items-center justify-center text-gray-400 hover:border-gray-400 cursor-pointer transition">
                       <Plus className="w-4 h-4" />
-                      <input type="file" multiple accept=".jpg,.jpeg,.png,.heic,image/jpeg,image/png,image/heic,image/heif" className="hidden" onChange={(e) => handleFiles(e.target.files)} />
+                      <input type="file" multiple accept="image/*" className="hidden" onChange={(e) => handleFiles(e.target.files)} />
                     </label>
                   )}
                 </div>
@@ -378,12 +392,12 @@ export default function ShopPage() {
                 <label className="block border-2 border-dashed border-gray-200 rounded-lg py-6 px-4 text-center text-gray-400 hover:border-gray-400 cursor-pointer">
                   <UploadCloud className="w-6 h-6 mx-auto mb-1.5 text-gray-400" />
                   <span className="text-[12px] font-semibold block text-gray-500">Click to browse or drag & drop</span>
-                  <span className="text-[10px] mt-0.5 block">PNG, JPG, HEIC accepted</span>
+                  <span className="text-[10px] mt-0.5 block">All image types accepted — any size</span>
                   <input
                     ref={fileInputRef}
                     type="file"
                     multiple={!isSingle}
-                    accept=".jpg,.jpeg,.png,.heic,image/jpeg,image/png,image/heic,image/heif"
+                    accept="image/*"
                     className="hidden"
                     onChange={(e) => handleFiles(e.target.files)}
                   />
