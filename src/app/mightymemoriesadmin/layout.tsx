@@ -4,6 +4,7 @@ import Link from "next/link";
 import { LayoutDashboard, Settings, Mail, Image as ImageIcon, ShoppingBag, LogOut, Star } from "lucide-react";
 import { login } from "./actions";
 import { SessionManager } from "./SessionManager";
+import { AdminLoginForm } from "./AdminLoginForm";
 
 export default async function AdminLayout({ children }: { children: React.ReactNode }) {
   const cookieStore = await cookies();
@@ -12,44 +13,7 @@ export default async function AdminLayout({ children }: { children: React.ReactN
   if (!isAdmin) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
-        <div className="bg-white p-8 rounded-3xl shadow-xl max-w-md w-full border border-gray-100">
-          <div className="text-center mb-8">
-            <div className="w-16 h-16 bg-blue-50 rounded-2xl flex items-center justify-center mx-auto mb-4">
-              <Settings className="w-8 h-8 text-blue-600" />
-            </div>
-            <h1 className="text-2xl font-extrabold text-gray-900 mb-2">Admin Access</h1>
-            <p className="text-gray-500 text-sm">Please enter the admin password</p>
-          </div>
-          
-          <form action={login} className="space-y-4">
-            <div>
-              <label className="block text-sm font-semibold text-gray-700 mb-1.5">Admin Email</label>
-              <input
-                type="email"
-                name="email"
-                placeholder="Enter admin email"
-                required
-                className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none transition bg-gray-50 focus:bg-white"
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-semibold text-gray-700 mb-1.5">Password</label>
-              <input
-                type="password"
-                name="password"
-                placeholder="Enter password"
-                required
-                className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none transition bg-gray-50 focus:bg-white"
-              />
-            </div>
-            <button
-              type="submit"
-              className="w-full bg-black text-white font-bold py-3 rounded-xl hover:bg-gray-800 transition-all"
-            >
-              Login
-            </button>
-          </form>
-        </div>
+        <AdminLoginForm />
       </div>
     );
   }
