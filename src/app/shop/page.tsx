@@ -175,6 +175,16 @@ export default function ShopPage() {
     setError("");
 
     const formData = new FormData(e.currentTarget);
+    const email = formData.get("email") as string;
+    
+    // Strict email validation
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!email || !emailRegex.test(email)) {
+      setError("Please enter a valid and complete email address.");
+      setIsSubmitting(false);
+      return;
+    }
+
     formData.set("productType", productType);
     formData.set(
       "packageDetails",

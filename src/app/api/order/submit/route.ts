@@ -23,6 +23,11 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "Missing required contact details" }, { status: 400 });
     }
 
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(email)) {
+      return NextResponse.json({ error: "Invalid email address format" }, { status: 400 });
+    }
+
     // Photos were pre-uploaded client-side — receive their GCS URLs
     const photos: { url: string }[] = [];
     for (const [key, value] of formData.entries()) {
