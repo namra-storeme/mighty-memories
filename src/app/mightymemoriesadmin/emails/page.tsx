@@ -1,6 +1,6 @@
 import { getDb } from "@/lib/firebase";
 import { Mail, ShieldAlert, CheckCircle, Package, Truck, CheckCheck, XCircle } from "lucide-react";
-import { updateEmailTemplate } from "../actions";
+import TemplateForm from "./TemplateForm";
 
 export const dynamic = "force-dynamic";
 
@@ -80,44 +80,12 @@ export default async function EmailsPage() {
 
       <div className="space-y-6">
         {templates.map((tpl) => (
-          <form action={updateEmailTemplate} key={tpl.id} className="bg-white p-6 rounded-3xl border border-gray-100 shadow-sm">
-            <input type="hidden" name="templateId" value={tpl.id} />
-            <div className="flex items-center gap-3 mb-4">
-              <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${tpl.bg}`}>
-                {tpl.icon}
-              </div>
-              <div className="flex-1">
-                <h3 className="font-bold text-gray-900">{tpl.title}</h3>
-                <p className="text-xs text-gray-500">{tpl.desc}</p>
-              </div>
-              <button type="submit" className="bg-gray-100 text-gray-700 px-4 py-2 rounded-lg text-sm font-bold hover:bg-indigo-600 hover:text-white transition shadow-sm">
-                Save
-              </button>
-            </div>
-            
-            <div className="space-y-4 pl-14">
-              <div>
-                <label className="block text-xs font-semibold text-gray-700 mb-1.5 uppercase tracking-wider">Subject Line</label>
-                <input
-                  type="text"
-                  name={`${tpl.id}Subject`}
-                  defaultValue={settings[`${tpl.id}Subject`] || tpl.defaultSub}
-                  required
-                  className="w-full px-4 py-2 border border-gray-200 rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none bg-gray-50 focus:bg-white transition text-sm"
-                />
-              </div>
-              <div>
-                <label className="block text-xs font-semibold text-gray-700 mb-1.5 uppercase tracking-wider">Email Body</label>
-                <textarea
-                  name={`${tpl.id}Body`}
-                  rows={3}
-                  defaultValue={settings[`${tpl.id}Body`] || tpl.defaultBody}
-                  required
-                  className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none bg-gray-50 focus:bg-white transition resize-y text-sm leading-relaxed"
-                />
-              </div>
-            </div>
-          </form>
+          <TemplateForm 
+            key={tpl.id} 
+            tpl={tpl} 
+            currentSubject={settings[`${tpl.id}Subject`]} 
+            currentBody={settings[`${tpl.id}Body`]} 
+          />
         ))}
       </div>
     </div>
