@@ -37,9 +37,11 @@ export default function ShopPage() {
 
   const [productType, setProductType] = useState<ProductType>("Custom Photo Magnets");
   const [quantity, setQuantity] = useState<number>(MIN_QTY["Custom Photo Magnets"]);
-  const [photos, setPhotos] = useState<File[]>([]);
-  const [photoUrls, setPhotoUrls] = useState<string[]>([]); // GCS URLs, pre-uploaded
-  const [isUploading, setIsUploading] = useState(false); // true while photos are being uploaded
+
+  // Each photo entry: local File for preview + upload status
+  type PhotoEntry = { file: File; previewUrl: string; gcsUrl: string | null; uploading: boolean; error: boolean };
+  const [photoEntries, setPhotoEntries] = useState<PhotoEntry[]>([]);
+
   const [comments, setComments] = useState("");
   const [localPickup, setLocalPickup] = useState(false);
   const [step, setStep] = useState<1 | 2>(1);
@@ -47,12 +49,17 @@ export default function ShopPage() {
   const [error, setError] = useState("");
   const fileInputRef = useRef<HTMLInputElement>(null);
 
+  // Derived helpers
+  const photos = photoEntries.map((e) => e.file);
+  const photoUrls = photoEntries.map((e) => e.gcsUrl).filter(Boolean) as string[];
+  const anyUploading = photoEntries.some((e) => e.uploading);
+  const anyError = photoEntries.some((e) => e.error);
+
   // ── Switch Product ─────────────────────────────────────────────────────────
   function handleProductSwitch(p: ProductType) {
     setProductType(p);
     setQuantity(MIN_QTY[p]);
-    setPhotos([]);
-    setPhotoUrls([]);
+    setPhotoEntries([]);
     setError("");
   }
 
@@ -62,82 +69,94 @@ export default function ShopPage() {
     const next = Math.max(min, quantity + delta);
     setQuantity(next);
     if (productType === "Custom Photo Magnets") {
-      setPhotos((prev) => prev.slice(0, next));
-      setPhotoUrls((prev) => prev.slice(0, next));
+      setPhotoEntries((prev) => prev.slice(0, next));
     }
   }
 
-  // ── Photo upload ───────────────────────────────────────────────────────────
+  // ── Upload a single file to GCS and update that entry's status ─────────────
+  async function uploadFile(file: File, entryIndex: number) {
+    // Only compress if the file is over 4MB to stay under Vercel's 4.5MB limit.
+    // For smaller files, pass through untouched (no quality loss, no delay).
+    let uploadFile = file;
+    if (file.size > 4 * 1024 * 1024) {
+      try {
+        uploadFile = await imageCompression(file, {
+          maxSizeMB: 4,
+          maxWidthOrHeight: 4096,
+          useWebWorker: true,
+          fileType: "image/jpeg",
+        });
+      } catch {
+        // If compression fails, try with the original file anyway
+        uploadFile = file;
+      }
+    }
+
+    try {
+      const fd = new FormData();
+      fd.append("photo", uploadFile, uploadFile.name || "photo.jpg");
+      const res = await fetch("/api/upload-photo", { method: "POST", body: fd });
+      if (!res.ok) throw new Error("Upload failed");
+      const { url } = await res.json();
+
+      setPhotoEntries((prev) => {
+        const next = [...prev];
+        if (next[entryIndex]) next[entryIndex] = { ...next[entryIndex], gcsUrl: url, uploading: false, error: false };
+        return next;
+      });
+    } catch {
+      setPhotoEntries((prev) => {
+        const next = [...prev];
+        if (next[entryIndex]) next[entryIndex] = { ...next[entryIndex], uploading: false, error: true };
+        return next;
+      });
+    }
+  }
+
+  // ── Photo pick handler — shows preview INSTANTLY, uploads in background ─────
   async function handleFiles(incoming: FileList | null) {
     if (!incoming) return;
-    
     const allFiles = Array.from(incoming);
     if (allFiles.length === 0) return;
     setError("");
 
-    // Compress each image aggressively before uploading
-    // Target 0.5MB / 1200px max — works for any image type including HEIC
-    const compressedFiles = await Promise.all(
-      allFiles.map(async (file) => {
-        try {
-          return await imageCompression(file, {
-            maxSizeMB: 0.5,
-            maxWidthOrHeight: 1200,
-            useWebWorker: true,
-            fileType: "image/jpeg", // normalise everything to JPEG for compatibility
-          });
-        } catch (e) {
-          console.error("Compression failed for", file.name, e);
-          return file; // fallback to original if compression fails
+    setPhotoEntries((prev) => {
+      const limit = productType === "Single Picture Magnets" ? 1 : quantity;
+      // Build new entries
+      const newEntries: PhotoEntry[] = allFiles.map((file) => ({
+        file,
+        previewUrl: URL.createObjectURL(file), // instant local preview — no wait
+        gcsUrl: null,
+        uploading: true,
+        error: false,
+      }));
+
+      const combined = productType === "Single Picture Magnets"
+        ? newEntries.slice(0, 1)
+        : [...prev, ...newEntries].slice(0, limit);
+
+      // Kick off background uploads for new entries
+      combined.forEach((entry, idx) => {
+        if (entry.uploading && !entry.gcsUrl) {
+          uploadFile(entry.file, idx);
         }
-      })
-    );
-
-    // Upload each compressed photo individually to avoid body size limits
-    setIsUploading(true);
-    const uploadedUrls: string[] = [];
-    for (const file of compressedFiles) {
-      try {
-        const fd = new FormData();
-        fd.append("photo", file, file.name || "photo.jpg");
-        const res = await fetch("/api/upload-photo", { method: "POST", body: fd });
-        if (!res.ok) throw new Error("Upload failed");
-        const { url } = await res.json();
-        uploadedUrls.push(url);
-      } catch (e) {
-        console.error("Failed to upload photo:", e);
-        setError("One or more photos failed to upload. Please try again.");
-        setIsUploading(false);
-        return;
-      }
-    }
-    setIsUploading(false);
-
-    if (productType === "Single Picture Magnets") {
-      setPhotos([compressedFiles[0] as File]);
-      setPhotoUrls([uploadedUrls[0]]);
-    } else {
-      setPhotos((prev) => {
-        const combined = [...prev, ...compressedFiles as File[]];
-        return combined.slice(0, quantity);
       });
-      setPhotoUrls((prev) => {
-        const combined = [...prev, ...uploadedUrls];
-        return combined.slice(0, quantity);
-      });
-    }
+
+      return combined;
+    });
   }
 
   function removePhoto(idx: number) {
-    setPhotos((prev) => prev.filter((_, i) => i !== idx));
-    setPhotoUrls((prev) => prev.filter((_, i) => i !== idx));
+    setPhotoEntries((prev) => prev.filter((_, i) => i !== idx));
   }
 
   // ── Validation ─────────────────────────────────────────────────────────────
   function validate() {
-    if (productType === "Custom Photo Magnets" && photos.length < quantity)
-      return `Please upload all ${quantity} photo${quantity > 1 ? "s" : ""} (${photos.length}/${quantity} uploaded).`;
-    if (productType === "Single Picture Magnets" && photos.length === 0)
+    if (anyUploading) return "Please wait — photos are still uploading.";
+    if (anyError) return "Some photos failed to upload. Please remove them and try again.";
+    if (productType === "Custom Photo Magnets" && photoEntries.length < quantity)
+      return `Please upload all ${quantity} photo${quantity > 1 ? "s" : ""} (${photoEntries.length}/${quantity} uploaded).`;
+    if (productType === "Single Picture Magnets" && photoEntries.length === 0)
       return "Please upload 1 photo.";
     return "";
   }
@@ -364,22 +383,40 @@ export default function ShopPage() {
                 {isSingle ? "Upload exactly 1 photo." : `Upload exactly ${quantity} photos — one per magnet.`}
               </p>
 
-              {photos.length > 0 && (
+              {photoEntries.length > 0 && (
                 <div className="flex flex-wrap gap-2 mb-3">
-                  {photos.map((file, i) => (
+                  {photoEntries.map((entry, i) => (
                     <div key={i} className="relative w-16 h-16 rounded-md overflow-hidden border border-gray-200 group">
                       {/* eslint-disable-next-line @next/next/no-img-element */}
-                      <img src={URL.createObjectURL(file)} alt={`Photo ${i + 1}`} className="w-full h-full object-cover" />
-                      <button
-                        type="button"
-                        onClick={() => removePhoto(i)}
-                        className="absolute top-1 right-1 bg-white/90 text-red-500 rounded-full p-1 opacity-0 group-hover:opacity-100 transition shadow"
-                      >
-                        <X className="w-2.5 h-2.5" />
-                      </button>
+                      <img src={entry.previewUrl} alt={`Photo ${i + 1}`} className="w-full h-full object-cover" />
+                      
+                      {/* Upload in progress — spinner overlay */}
+                      {entry.uploading && (
+                        <div className="absolute inset-0 bg-black/40 flex items-center justify-center">
+                          <Loader2 className="w-4 h-4 text-white animate-spin" />
+                        </div>
+                      )}
+
+                      {/* Upload error — red overlay */}
+                      {entry.error && (
+                        <div className="absolute inset-0 bg-red-500/70 flex items-center justify-center">
+                          <X className="w-5 h-5 text-white" />
+                        </div>
+                      )}
+
+                      {/* Remove button (only when not uploading) */}
+                      {!entry.uploading && (
+                        <button
+                          type="button"
+                          onClick={() => removePhoto(i)}
+                          className="absolute top-1 right-1 bg-white/90 text-red-500 rounded-full p-1 opacity-0 group-hover:opacity-100 transition shadow"
+                        >
+                          <X className="w-2.5 h-2.5" />
+                        </button>
+                      )}
                     </div>
                   ))}
-                  {!isSingle && photos.length < quantity && (
+                  {!isSingle && photoEntries.length < quantity && (
                     <label className="w-16 h-16 rounded-md border-2 border-dashed border-gray-300 flex flex-col items-center justify-center text-gray-400 hover:border-gray-400 cursor-pointer transition">
                       <Plus className="w-4 h-4" />
                       <input type="file" multiple accept="image/*" className="hidden" onChange={(e) => handleFiles(e.target.files)} />
@@ -388,7 +425,7 @@ export default function ShopPage() {
                 </div>
               )}
 
-              {(photos.length === 0 || (isSingle && photos.length === 0)) && (
+              {(photoEntries.length === 0 || (isSingle && photoEntries.length === 0)) && (
                 <label className="block border-2 border-dashed border-gray-200 rounded-lg py-6 px-4 text-center text-gray-400 hover:border-gray-400 cursor-pointer">
                   <UploadCloud className="w-6 h-6 mx-auto mb-1.5 text-gray-400" />
                   <span className="text-[12px] font-semibold block text-gray-500">Click to browse or drag & drop</span>
